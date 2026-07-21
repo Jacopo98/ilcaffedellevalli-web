@@ -4,10 +4,10 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black px-6 text-center">
       <Image
-        src="/logoprovvisorio.png"
+        src="/Logo_black_trasparent.png"
         alt="Il Caffè delle Valli"
         width={860}
-        height={860}
+        height={460}
         priority
       />
 
