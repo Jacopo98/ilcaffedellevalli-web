@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Mina } from "next/font/google";
 import "./globals.css";
 
@@ -18,6 +18,13 @@ const mina = Mina({
 export const metadata: Metadata = {
   title: "Il Caffè delle Valli | Paladina",
   description: "Caffetteria, colazioni e aperitivi a Paladina, nel cuore delle Valli bergamasche.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1c1c1a",
 };
 
 export default function RootLayout({

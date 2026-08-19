@@ -14,22 +14,11 @@ export default function Home() {
     <main className="overflow-hidden bg-cream text-ink">
       <LandingHero />
 
-      <div className="bg-cream">
-        <div className="site-container grid border-b border-ink/15 sm:grid-cols-3">
-          {highlights.map((item) => (
-            <div className="flex items-baseline gap-4 border-ink/15 py-7 sm:border-r sm:px-6 sm:first:pl-0 sm:last:border-r-0" key={item.label}>
-              <span className="font-display text-3xl text-orange">{item.value}</span>
-              <span className="text-xs uppercase tracking-[0.16em] text-ink/45">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <MenuSection />
 
       <section id="storia" className="relative bg-white">
-        <div className="scroll-bean section-bean section-bean-one" data-speed="-0.035" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
-        <div className="site-container grid gap-16 py-24 lg:grid-cols-[0.9fr_1.1fr] lg:py-36">
+        <div className="scroll-bean section-bean section-bean-one" data-move-x="-90" data-move-y="-240" data-rotate="70" data-scale="0.25" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
+        <div className="site-container relative z-10 grid gap-16 py-24 lg:grid-cols-[0.9fr_1.1fr] lg:py-36">
         <div>
           <p className="section-number">02 — Il locale</p>
           <h2 className="mt-7 max-w-lg font-display text-5xl leading-[0.95] tracking-tight sm:text-7xl">Semplice nelle cose. <span className="text-orange">Speciale</span> nel modo.</h2>
@@ -42,10 +31,18 @@ export default function Home() {
           </div>
         </div>
         </div>
+        <div className="site-container highlights-strip">
+          {highlights.map((item) => (
+            <div className="highlight-item" key={item.label}>
+              <span className="font-display text-orange">{item.value}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="relative overflow-hidden bg-orange text-white">
-        <div className="scroll-bean section-bean section-bean-two" data-speed="-0.06" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
+        <div className="scroll-bean section-bean section-bean-two" data-move-x="120" data-move-y="-260" data-rotate="-85" data-scale="0.2" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
         <div className="site-container grid gap-10 py-20 lg:grid-cols-[1fr_auto] lg:items-end lg:py-28">
           <div><p className="text-xs font-bold uppercase tracking-[0.22em] text-white/65">Un posto, tanti momenti</p><p className="mt-5 max-w-4xl font-display text-4xl leading-tight sm:text-6xl lg:text-7xl">Ci vediamo per un caffè?<br />Il primo lo scegli tu.</p></div>
           <a className="button button-light shrink-0" href="tel:+390000000000">Chiamaci <Phone size={17} /></a>
