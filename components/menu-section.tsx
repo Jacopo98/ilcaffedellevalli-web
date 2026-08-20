@@ -33,13 +33,12 @@ export function MenuSection() {
   const [activeCategory, setActiveCategory] = useState<Category>("Caffetteria");
 
   return (
-    <section id="menu" className="relative overflow-hidden bg-cream py-24 lg:py-36">
-      <div className="scroll-bean menu-bean menu-bean-left" data-move-x="220" data-move-y="-360" data-rotate="120" data-scale="0.35" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
-      <div className="scroll-bean menu-bean menu-bean-right" data-move-x="-260" data-move-y="380" data-rotate="-150" data-scale="-0.28" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
+    <section id="menu" className="relative bg-cream py-24 lg:py-36">
+      <div className="scroll-bean menu-bean menu-bean-left" data-move-x="0" data-move-y="-360" data-rotate="70" data-scale="0.18" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
       <div className="site-container relative z-10">
         <div className="flex flex-col gap-8 border-b border-ink/15 pb-10 lg:flex-row lg:items-end lg:justify-between">
           <div><p className="section-number">01 — Il menu</p><h2 className="mt-5 font-display text-5xl tracking-tight sm:text-7xl">Scegli il tuo momento.</h2></div>
-          <p className="max-w-sm text-sm leading-relaxed text-ink/50">Questa è una selezione dimostrativa. Ingredienti, disponibilità e prezzi verranno aggiornati con il menu definitivo.</p>
+          {/* <p className="max-w-sm text-sm leading-relaxed text-ink/50">Questa è una selezione dimostrativa. Ingredienti, disponibilità e prezzi verranno aggiornati con il menu definitivo.</p> */}
         </div>
         <div className="mt-10 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Categorie del menu">
           {categories.map((category) => (
