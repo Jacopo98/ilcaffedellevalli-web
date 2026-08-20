@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ArrowUpRight, Clock3, MapPin, Phone } from "lucide-react";
 import { LandingHero } from "@/components/landing-hero";
 import { MenuSection } from "@/components/menu-section";
+import { getPublicMenu } from "@/lib/menu";
 
 const highlights = [
   { value: "7/7", label: "Aperti ogni giorno" },
@@ -9,16 +10,18 @@ const highlights = [
   { value: "25", label: "Tipi di brioche" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const menu = await getPublicMenu();
+
   return (
     <main className="overflow-hidden bg-cream text-ink">
       <LandingHero />
 
       <div className="sections-flow relative isolate">
-        <MenuSection />
-        <div className="scroll-bean cross-section-bean" data-move-x="0" data-move-y="-360" data-rotate="70" data-scale="0.18" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
+        <MenuSection categories={menu} />
 
       <section id="storia" className="relative bg-white">
+        <div className="scroll-bean cross-section-bean" data-move-x="0" data-move-y="-180" data-rotate="70" data-scale="0.18" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} /></div>
         <div className="site-container relative z-10 grid gap-16 py-24 lg:grid-cols-[0.9fr_1.1fr] lg:py-36">
         <div>
           <p className="section-number">02 — Il locale</p>
