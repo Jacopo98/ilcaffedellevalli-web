@@ -13,7 +13,7 @@ export default async function AdminPage() {
       <div className="admin-section-heading"><div><p className="admin-kicker">Strumenti</p><h2>Cosa vuoi gestire?</h2></div><span className="admin-secure-label"><ShieldCheck size={15} /> Sessione protetta</span></div>
       <div className="admin-dashboard-grid">
         {isAdmin ? <Link className="admin-dashboard-card admin-dashboard-card-active" href="/admin/menu"><span className="admin-card-icon"><Coffee /></span><div><small>Disponibile ora</small><h3>Gestione menu</h3><p>Categorie, prodotti, prezzi, allergeni e disponibilità.</p><span className="admin-card-link">Apri gestione <ArrowRight size={16} /></span></div></Link> : <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><Coffee /></span><div><h3>Gestione menu</h3><p>Permesso riservato all’amministratore.</p></div></div>}
-        <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><Users /></span><div><small>Prossimamente</small><h3>Collaboratori</h3><p>Utenti, ruoli e permessi del personale.</p></div></div>
+        {isAdmin ? <Link className="admin-dashboard-card admin-dashboard-card-active" href="/admin/dipendenti"><span className="admin-card-icon"><Users /></span><div><small>Disponibile ora</small><h3>Dipendenti e turni</h3><p>Anagrafica, calendario settimanale e riepilogo ore.</p><span className="admin-card-link">Apri gestione <ArrowRight size={16} /></span></div></Link> : <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><Users /></span><div><h3>Dipendenti e turni</h3><p>Permesso riservato all’amministratore.</p></div></div>}
       </div>
     </main>
   );

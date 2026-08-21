@@ -169,6 +169,113 @@ button { cursor: pointer; }
 .admin-item summary small { color: var(--orange); font-family: var(--font-mina),sans-serif; font-size: .9rem; }
 .admin-item summary .admin-item-meta { flex: 0 0 auto; justify-content: flex-end; }
 
+/* Dipendenti e calendario */
+.staff-page { padding-block: clamp(2rem,5vw,4rem); }
+.staff-topbar,.staff-heading,.schedule-toolbar,.share-filter { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.staff-tabs { display: flex; gap: .35rem; border: 1px solid rgba(28,28,26,.1); border-radius: 999px; padding: .3rem; background: white; }
+.staff-tabs button { display: flex; align-items: center; gap: .45rem; border-radius: 999px; padding: .65rem 1rem; color: rgba(28,28,26,.46); font-size: .72rem; font-weight: 800; }
+.staff-tabs button.active { background: var(--ink); color: white; }
+.staff-heading { align-items: flex-end; margin-top: clamp(2rem,5vw,4rem); }
+.staff-heading h1 { margin-top: .65rem; font-family: var(--font-mina),sans-serif; font-size: clamp(2.5rem,6vw,4.8rem); line-height: 1; letter-spacing: -.05em; }
+.staff-heading > div > p:last-child { margin-top: 1rem; color: rgba(28,28,26,.5); font-size: .86rem; }
+.staff-alert { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; border: 1px solid rgba(232,101,10,.25); border-radius: .9rem; padding: .9rem 1rem; background: #fff1e7; color: #9b4104; font-size: .78rem; font-weight: 700; }
+.schedule-toolbar { margin-top: 2.5rem; border: 1px solid rgba(28,28,26,.1); border-radius: 1.25rem 1.25rem 0 0; padding: 1rem; background: white; }
+.week-navigation { display: flex; align-items: center; gap: .75rem; }
+.week-navigation > a { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border: 1px solid rgba(28,28,26,.1); border-radius: 50%; }
+.week-navigation > a:hover { border-color: var(--orange); color: var(--orange); }
+.week-navigation div { display: grid; min-width: 10rem; text-align: center; }
+.week-navigation small { color: rgba(28,28,26,.38); font-size: .58rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+.week-navigation strong { margin-top: .15rem; font-family: var(--font-mina),sans-serif; font-size: 1rem; }
+.schedule-actions { display: flex; gap: .45rem; }
+.schedule-actions button { display: flex; align-items: center; gap: .45rem; border: 1px solid rgba(28,28,26,.11); border-radius: 999px; padding: .7rem .9rem; color: rgba(28,28,26,.58); font-size: .68rem; font-weight: 800; }
+.schedule-actions button:hover { border-color: var(--orange); color: var(--orange); }
+.share-filter { align-items: flex-start; justify-content: flex-start; border-inline: 1px solid rgba(28,28,26,.1); padding: .8rem 1rem; background: #faf8f5; }
+.share-filter > div:first-child { display: flex; flex: 0 0 auto; align-items: center; gap: .45rem; padding-top: .35rem; color: rgba(28,28,26,.43); font-size: .66rem; font-weight: 800; }
+.share-employees { display: flex; flex-wrap: wrap; gap: .35rem; }
+.share-employees label { display: flex; cursor: pointer; align-items: center; gap: .35rem; border: 1px solid rgba(28,28,26,.1); border-radius: 999px; padding: .35rem .55rem; background: white; font-size: .63rem; font-weight: 700; }
+.share-employees input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.share-employees label:has(input:not(:checked)) { opacity: .38; }
+.share-employees i,.recap-grid i { width: .55rem; height: .55rem; border-radius: 50%; }
+.schedule-layout { display: grid; grid-template-columns: 3.25rem minmax(0,1fr); border: 1px solid rgba(28,28,26,.1); border-radius: 0 0 1.25rem 1.25rem; background: white; }
+.schedule-hours { position: relative; margin-top: 4.55rem; border-right: 1px solid rgba(28,28,26,.08); color: rgba(28,28,26,.3); font-size: .55rem; font-weight: 700; }
+.schedule-hours span { position: absolute; right: .55rem; transform: translateY(-50%); }
+.week-calendar { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); min-width: 0; }
+.calendar-day { min-width: 0; border-right: 1px solid rgba(28,28,26,.08); }
+.calendar-day:last-child { border-right: 0; }
+.calendar-day > header { display: flex; height: 4.55rem; align-items: center; justify-content: space-between; gap: .35rem; padding: .7rem; border-bottom: 1px solid rgba(28,28,26,.08); }
+.calendar-day > header div { display: grid; min-width: 0; }
+.calendar-day > header strong { overflow: hidden; font-size: .68rem; text-overflow: ellipsis; }
+.calendar-day > header span { margin-top: .15rem; color: rgba(28,28,26,.35); font-size: .57rem; text-transform: uppercase; }
+.calendar-day > header button { display: grid; flex: 0 0 1.8rem; height: 1.8rem; place-items: center; border-radius: 50%; background: rgba(232,101,10,.1); color: var(--orange); }
+.day-timeline { position: relative; touch-action: pan-x; user-select: none; background: repeating-linear-gradient(to bottom,transparent 0,transparent 53px,rgba(28,28,26,.07) 54px); }
+.mobile-time-axis { display: none; }
+.mobile-hour-line { display: none; }
+.hour-line { position: absolute; right: 0; left: 0; height: 1px; }
+.shift-card { position: absolute; z-index: 2; display: flex; min-height: 2rem; flex-direction: column; align-items: flex-start; overflow: hidden; border-left: 3px solid; border-radius: .5rem; padding: .35rem .4rem; color: var(--ink); text-align: left; box-shadow: 0 .25rem .7rem rgba(28,28,26,.06); }
+.shift-card:hover { z-index: 4; filter: saturate(1.2); transform: translateY(-1px); }
+.shift-card strong { width: 100%; overflow: hidden; font-size: .61rem; text-overflow: ellipsis; white-space: nowrap; }
+.shift-card span { margin-top: .12rem; font-size: .53rem; opacity: .58; white-space: nowrap; }
+.shift-card em { width: 100%; overflow: hidden; margin-bottom: .12rem; font-size: .44rem; font-style: normal; font-weight: 900; letter-spacing: .08em; opacity: .65; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.shift-type-rol,.shift-type-holiday,.shift-type-sick { background-image: repeating-linear-gradient(135deg,rgba(255,255,255,.2) 0,rgba(255,255,255,.2) 4px,transparent 4px,transparent 8px) !important; }
+.hours-recap { margin-top: 2rem; border: 1px solid rgba(28,28,26,.1); border-radius: 1.5rem; padding: clamp(1.25rem,4vw,2rem); background: white; }
+.recap-heading h2 { margin-top: .45rem; font-family: var(--font-mina),sans-serif; font-size: 1.8rem; }
+.recap-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem 1.5rem; margin-top: 1.4rem; }
+.recap-grid article { display: flex; align-items: center; gap: .65rem; border-bottom: 1px solid rgba(28,28,26,.08); padding: .75rem 0; }
+.recap-grid article > div { display: grid; min-width: 0; }
+.recap-grid strong { overflow: hidden; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.recap-grid small { margin-top: .12rem; color: rgba(28,28,26,.38); font-size: .57rem; }
+.recap-grid article > span { margin-left: auto; color: var(--orange); font-family: var(--font-mina),sans-serif; font-size: 1rem; font-weight: 700; }
+.employee-catalog { margin-top: 2.5rem; }
+.employee-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.employee-card { position: relative; display: flex; gap: 1rem; min-width: 0; border: 1px solid rgba(28,28,26,.1); border-radius: 1.35rem; padding: 1.35rem; background: white; box-shadow: 0 .6rem 2rem rgba(28,28,26,.035); }
+.employee-inactive { opacity: .5; }
+.employee-avatar { display: grid; flex: 0 0 3.4rem; height: 3.4rem; place-items: center; border-radius: 1rem; font-family: var(--font-mina),sans-serif; font-size: 1rem; font-weight: 700; }
+.employee-card-main { min-width: 0; flex: 1; }
+.employee-state { color: var(--orange); font-size: .56rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.employee-card h2 { margin-top: .35rem; font-family: var(--font-mina),sans-serif; font-size: 1.35rem; }
+.employee-card-main > p { color: rgba(28,28,26,.45); font-size: .7rem; }
+.employee-card dl { display: grid; gap: .45rem; margin-top: 1rem; }
+.employee-card dl div { display: grid; grid-template-columns: 5.5rem minmax(0,1fr); gap: .5rem; font-size: .65rem; }
+.employee-card dt { color: rgba(28,28,26,.35); }
+.employee-card dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.employee-edit { display: grid; flex: 0 0 2.2rem; height: 2.2rem; place-items: center; border: 1px solid rgba(28,28,26,.1); border-radius: 50%; color: rgba(28,28,26,.45); }
+.employee-edit:hover { border-color: var(--orange); color: var(--orange); }
+.admin-modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow-y: auto; padding: 1rem; background: rgba(15,15,14,.72); backdrop-filter: blur(8px); }
+.admin-modal { position: relative; width: min(100%,34rem); max-height: calc(100dvh - 2rem); overflow-y: auto; border: 1px solid rgba(255,255,255,.4); border-radius: 1.5rem; padding: clamp(1.3rem,4vw,2rem); background: var(--cream); box-shadow: 0 2rem 6rem rgba(0,0,0,.35); }
+.admin-modal-wide { width: min(100%,43rem); }
+.admin-modal h2 { margin: .6rem 0 1.75rem; font-family: var(--font-mina),sans-serif; font-size: clamp(2rem,5vw,2.8rem); }
+.modal-close { position: absolute; top: 1rem; right: 1rem; display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: 50%; color: rgba(28,28,26,.4); }
+.modal-close:hover { background: white; color: var(--ink); }
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; margin-top: .5rem; }
+.payroll-export { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 1.25rem; margin-top: 1.25rem; border: 1px solid rgba(28,28,26,.1); border-radius: 1.5rem; padding: 1.4rem; background: var(--ink); color: white; }
+.payroll-icon { display: grid; width: 3.2rem; height: 3.2rem; place-items: center; border-radius: 1rem; background: rgba(232,101,10,.14); color: var(--orange); }
+.payroll-export h2 { margin-top: .25rem; font-family: var(--font-mina),sans-serif; font-size: 1.35rem; }
+.payroll-export > div > p:last-child { margin-top: .2rem; color: rgba(255,255,255,.43); font-size: .65rem; }
+.payroll-export label { display: grid; gap: .3rem; }
+.payroll-export label span { color: rgba(255,255,255,.42); font-size: .58rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.payroll-export input { border: 1px solid rgba(255,255,255,.15); border-radius: .7rem; padding: .65rem .75rem; background: rgba(255,255,255,.07); color: white; color-scheme: dark; }
+.payroll-report { width: min(100% - 2rem,1180px); margin: 2rem auto; border-radius: 1.5rem; padding: clamp(1.5rem,4vw,3rem); background: white; box-shadow: 0 1rem 4rem rgba(28,28,26,.08); }
+.report-header { display: grid; grid-template-columns: 13rem minmax(0,1fr) auto; align-items: center; gap: 2rem; border-bottom: 2px solid var(--ink); padding-bottom: 1.5rem; }
+.report-logo-panel { display: grid; min-height: 4.25rem; place-items: center; border-radius: .75rem; padding: .7rem; background: var(--ink); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.report-header img { width: 100%; height: auto; }
+.report-header p { color: var(--orange); font-size: .65rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.report-header h1 { margin-top: .25rem; font-family: var(--font-mina),sans-serif; font-size: 2rem; text-transform: capitalize; }
+.report-actions { display: flex; gap: .5rem; }
+.report-actions a,.report-actions button { display: flex; align-items: center; gap: .4rem; border: 1px solid rgba(28,28,26,.14); border-radius: 999px; padding: .7rem .9rem; font-size: .68rem; font-weight: 800; }
+.report-actions button { background: var(--orange); color: white; }
+.report-summary { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem 0; color: rgba(28,28,26,.45); font-size: .68rem; }
+.payroll-report table { width: 100%; border-collapse: collapse; font-size: .68rem; }
+.payroll-report th { padding: .65rem; background: #f0ede8; color: rgba(28,28,26,.55); font-size: .56rem; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+.payroll-report td { border-bottom: 1px solid rgba(28,28,26,.09); padding: .7rem .65rem; }
+.report-highlight { color: var(--orange); font-weight: 800; }
+.report-details { margin-top: 2.5rem; }
+.report-details > h2 { font-family: var(--font-mina),sans-serif; font-size: 1.7rem; }
+.report-employee { break-inside: avoid; margin-top: 1.5rem; }
+.report-employee h3 { display: flex; justify-content: space-between; border-bottom: 1px solid var(--ink); padding-bottom: .5rem; font-family: var(--font-mina),sans-serif; font-size: 1rem; }
+.report-employee h3 span { color: var(--orange); }
+.report-empty { padding: 1rem 0; color: rgba(28,28,26,.4); font-size: .7rem; }
+.report-footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; border-top: 1px solid rgba(28,28,26,.12); padding-top: 1rem; color: rgba(28,28,26,.38); font-size: .58rem; }
+
 @media (min-width: 640px) { .admin-edit-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .admin-field-wide { grid-column: 1 / -1; } }
 @media (max-width: 850px) {
   .login-frame { grid-template-columns: 1fr; width: min(100%,34rem); min-height: 0; }
@@ -179,6 +286,22 @@ button { cursor: pointer; }
   .login-beans { right: -8rem; bottom: -8rem; width: 25rem; opacity: .6; }
   .login-form-panel { padding: 2rem 1.75rem; }
   .admin-dashboard-grid { grid-template-columns: 1fr; }
+  .week-calendar { grid-template-columns: 1fr; }
+  .schedule-layout { grid-template-columns: 1fr; }
+  .schedule-hours { display: none; }
+  .calendar-day { border-right: 0; border-bottom: 1px solid rgba(28,28,26,.1); }
+  .calendar-day > header { height: 3.75rem; }
+  .day-timeline { height: calc(2.4rem + var(--mobile-rows,1) * 3rem) !important; min-height: 5.4rem; touch-action: pan-y; background: transparent; }
+  .mobile-time-axis { position: absolute; inset: .5rem 0 auto; z-index: 2; display: block; height: 1rem; color: rgba(28,28,26,.35); font-size: clamp(.42rem,1.65vw,.52rem); font-weight: 700; }
+  .mobile-hour-line { position: absolute; top: 0; bottom: 0; z-index: 0; display: block; width: 1px; background: rgba(28,28,26,.09); }
+  .mobile-time-axis span { position: absolute; transform: translateX(-50%); }
+  .mobile-time-axis span:first-child { transform: none; }
+  .mobile-time-axis span:last-child { transform: translateX(-100%); }
+  .shift-card { top: calc(2rem + var(--mobile-row) * 3rem) !important; right: auto; left: calc(var(--mobile-left) + .2rem) !important; width: max(2.75rem,calc(var(--mobile-width) - .4rem)) !important; height: 2.45rem !important; min-height: 0; margin: 0; padding: .4rem .5rem; }
+  .shift-card strong { font-size: .62rem; }
+  .shift-card span { font-size: .52rem; }
+  .hour-line { display: none; }
+  .employee-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 639px) {
   .admin-shell { align-items: start; padding: 4.5rem .75rem 1rem; overflow: auto; }
@@ -190,9 +313,65 @@ button { cursor: pointer; }
   .admin-section-heading { align-items: flex-start; }
   .admin-secure-label { display: none; }
   .admin-dashboard-card { min-height: 13rem; padding: 1.4rem; }
+  .staff-topbar { align-items: flex-start; }
+  .staff-tabs button { padding: .58rem .7rem; }
+  .staff-heading { align-items: flex-start; }
+  .staff-heading > button { flex: 0 0 auto; padding-inline: .7rem; }
+  .schedule-toolbar { flex-direction: column; align-items: stretch; }
+  .week-navigation { justify-content: space-between; }
+  .schedule-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .schedule-actions button { justify-content: center; }
+  .share-filter { flex-direction: column; }
+  .recap-grid { grid-template-columns: 1fr; }
+  .employee-card { padding: 1rem; }
+  .employee-avatar { flex-basis: 2.8rem; height: 2.8rem; }
+  .admin-modal-backdrop { align-items: end; padding: 0; }
+  .admin-modal { width: 100%; max-height: 92dvh; border-radius: 1.5rem 1.5rem 0 0; padding: 1.35rem; }
+  .payroll-export { grid-template-columns: auto minmax(0,1fr); }
+  .payroll-export label,.payroll-export > a { grid-column: 1 / -1; }
+  .payroll-export > a { justify-content: center; }
+  .payroll-report { width: calc(100% - 1rem); margin: .5rem; padding: 1rem; overflow-x: auto; }
+  .report-header { grid-template-columns: 9rem 1fr; gap: 1rem; }
+  .report-actions { grid-column: 1 / -1; }
 }
 
 @media (min-width: 640px) { .site-container { width: min(100% - 4rem, 1320px); } }
 @media (min-width: 640px) and (max-width: 900px) { .header-logo { width: 8rem; } .floating-header-visible .header-nav { left: auto; right: 2rem; transform: translateY(-50%); } }
 @media (max-width: 639px) { .hero-center { width: 91vw; } .hero-bean-right { right: -11rem; top: 9%; width: 24rem; opacity: .28; } .hero-bean-left { left: -8rem; bottom: 4%; width: 17rem; } .header-logo { width: 5.25rem; } .header-nav { gap: .8rem; font-size: .66rem; } .floating-header-visible .header-nav { left: auto; right: 1rem; transform: translateY(-50%); } .menu-bean-left, .cross-section-bean { right: -5rem; } .section-bean-one { right: -6rem; } .highlight-item { flex-direction: column; align-items: center; gap: .3rem; text-align: center; } .highlight-item span:last-child { font-size: .5rem; letter-spacing: .04em; white-space: nowrap; } .menu-tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .3rem; } .menu-tab { min-width: 0; padding: .55rem .25rem; font-size: .65rem; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background: white !important; }
+  .admin-header,.staff-topbar,.staff-heading > button,.schedule-actions,.share-filter,.admin-back-link,.admin-modal-backdrop,.payroll-export,.report-actions { display: none !important; }
+  .staff-page { width: 100%; padding: 0; }
+  .staff-heading { display: block; margin: 0 0 8mm; }
+  .staff-heading h1 { font-size: 26pt; }
+  .schedule-toolbar { margin: 0; border-radius: .5rem .5rem 0 0; }
+  .week-navigation > a { display: none; }
+  .schedule-layout { grid-template-columns: 2.5rem minmax(0,1fr); break-inside: avoid; }
+  .schedule-hours { display: block; }
+  .schedule-hours { margin-top: 3.5rem; }
+  .week-calendar { grid-template-columns: repeat(7,minmax(0,1fr)); }
+  .calendar-day { border-right: 1px solid #ddd; border-bottom: 0; }
+  .calendar-day > header { height: 3.5rem; }
+  .calendar-day > header button { display: none; }
+  .mobile-time-axis,.mobile-hour-line { display: none !important; }
+  .schedule-hours span { top: var(--print-top) !important; }
+  .hour-line { display: block !important; top: var(--print-top) !important; }
+  .day-timeline { height: 420px !important; background: transparent !important; }
+  .shift-card { position: absolute; top: var(--print-top) !important; right: auto !important; left: var(--print-left) !important; width: var(--print-width) !important; height: var(--print-height) !important; min-width: 0 !important; margin: 0 !important; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .hours-recap { break-inside: avoid; margin-top: 8mm; box-shadow: none; }
+  .payroll-report { width: 100%; margin: 0; border: 0; border-radius: 0; padding: 0 0 8mm; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .payroll-report .report-header { grid-template-columns: 38mm minmax(0,1fr); gap: 7mm; padding-bottom: 5mm; }
+  .payroll-report .report-header h1 { font-size: 18pt; }
+  .payroll-report .report-summary { padding-block: 4mm; }
+  .payroll-report table { table-layout: fixed; font-size: 6.5pt; }
+  .payroll-report th { padding: 2.2mm 1.2mm; font-size: 5.2pt; }
+  .payroll-report td { overflow-wrap: anywhere; padding: 2.3mm 1.2mm; }
+  .payroll-report .payroll-summary-table th:first-child,.payroll-report .payroll-summary-table td:first-child { width: 24%; }
+  .payroll-report .report-employee h3 { font-size: 9pt; }
+  .payroll-report .report-logo-panel { min-height: 16mm; border-radius: 3mm; padding: 3mm; }
+  .payroll-report .report-footer { position: fixed; right: 0; bottom: -12mm; left: 0; z-index: 10; margin: 0; border-top: 1px solid #d8d5d0; padding-top: 2.5mm; background: white; }
+  .report-details { margin-top: 8mm; break-before: auto; }
+}
