@@ -14,6 +14,7 @@ const itemSchema = z.object({
   categoryId: idSchema,
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500),
+  section: z.string().trim().max(80),
   price: z.preprocess(
     (value) => value === "" || value === null ? null : Number(value),
     z.number().min(0).max(9999).nullable(),
@@ -60,12 +61,13 @@ export async function deleteCategory(formData: FormData) {
 function parseItem(formData: FormData) {
   const values = itemSchema.parse({
     categoryId: formData.get("category_id"), name: formData.get("name"), description: formData.get("description") ?? "",
-    price: formData.get("price"), allergens: formData.get("allergens") ?? "", position: formData.get("position"),
+    price: formData.get("price"), allergens: formData.get("allergens") ?? "", section: formData.get("section") ?? "", position: formData.get("position"),
   });
   return {
     category_id: values.categoryId,
     name: values.name,
     description: values.description || null,
+    section: values.section || null,
     price_cents: values.price === null ? null : Math.round(values.price * 100),
     allergens: values.allergens.split(",").map((value) => value.trim().toLowerCase()).filter(Boolean),
     is_vegetarian: formData.get("is_vegetarian") === "on",

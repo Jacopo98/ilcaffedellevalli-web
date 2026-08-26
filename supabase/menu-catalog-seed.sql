@@ -4,6 +4,7 @@
 begin;
 
 alter table public.menu_items alter column price_cents drop not null;
+alter table public.menu_items add column if not exists section text;
 
 delete from public.menu_items
 where category_id in (select id from public.menu_categories where slug <> 'pranzo');
@@ -14,11 +15,13 @@ insert into public.menu_categories (name, slug, description, position, is_active
 values
   ('Caffetteria', 'caffetteria', 'Espressi, preparazioni con latte, ginseng e orzo.', 1, true),
   ('Brioches e dolci', 'brioches-e-dolci', 'Proposte dolci e salate per la colazione.', 2, true),
-  ('Bibite e analcolici', 'bibite-e-analcolici', 'Succhi, bibite, acqua e proposte analcoliche.', 4, true),
-  ('Birre', 'birre', 'Birre in bottiglia e alla spina.', 5, true),
-  ('Vini e distillati', 'vini-e-distillati', 'Bollicine, vini, amari e distillati.', 6, true),
-  ('Aperitivi e cocktail', 'aperitivi-e-cocktail', 'I classici dell’aperitivo.', 7, true),
-  ('Varie', 'varie', null, 8, true);
+  ('Bevande', 'bevande', 'Analcolici, birre, vini, distillati e aperitivi.', 4, true),
+  ('Varie', 'varie', null, 5, true),
+  -- Categorie temporanee usate per organizzare l’importazione; vengono rimosse a fine query.
+  ('Bibite e analcolici', 'bibite-e-analcolici', null, 90, false),
+  ('Birre', 'birre', null, 91, false),
+  ('Vini e distillati', 'vini-e-distillati', null, 92, false),
+  ('Aperitivi e cocktail', 'aperitivi-e-cocktail', null, 93, false);
 
 -- Se Pranzo esiste, ne mantiene descrizione e prodotti e ne aggiorna soltanto la posizione.
 -- Se era già stato eliminato, ricrea la categoria e aggiunge un esempio minimo.
@@ -142,6 +145,30 @@ select
   products.position
 from products
 join public.menu_categories as categories on categories.slug = products.category_slug;
+
+-- Riunisce le famiglie di bevande in un solo pulsante, conservandole come sottocategorie.
+update public.menu_items as item
+set category_id = beverage.id,
+    section = case source.slug
+      when 'bibite-e-analcolici' then 'Analcolici'
+      when 'birre' then 'Birre'
+      when 'vini-e-distillati' then 'Vini e distillati'
+      when 'aperitivi-e-cocktail' then 'Aperitivi e cocktail'
+    end,
+    position = item.position + case source.slug
+      when 'bibite-e-analcolici' then 0
+      when 'birre' then 100
+      when 'vini-e-distillati' then 200
+      when 'aperitivi-e-cocktail' then 300
+    end
+from public.menu_categories as source
+cross join public.menu_categories as beverage
+where item.category_id = source.id
+  and source.slug in ('bibite-e-analcolici', 'birre', 'vini-e-distillati', 'aperitivi-e-cocktail')
+  and beverage.slug = 'bevande';
+
+delete from public.menu_categories
+where slug in ('bibite-e-analcolici', 'birre', 'vini-e-distillati', 'aperitivi-e-cocktail');
 
 -- Simboli mostrati dal sito: spiga = glutine, foglia = proposta vegetariana.
 -- Verificare sempre questi dati sulle ricette e sulle etichette effettivamente utilizzate.

@@ -5,7 +5,7 @@ import { AdminSubmitButton } from "@/components/admin-submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { createCategory, createItem, deleteCategory, deleteItem, updateCategory, updateItem } from "./actions";
 
-type AdminItem = { id: number; category_id: number; name: string; description: string | null; price_cents: number | null; allergens: string[]; is_vegetarian: boolean; is_available: boolean; position: number };
+type AdminItem = { id: number; category_id: number; name: string; description: string | null; section: string | null; price_cents: number | null; allergens: string[]; is_vegetarian: boolean; is_available: boolean; position: number };
 type AdminCategory = { id: number; name: string; slug: string; description: string | null; position: number; is_active: boolean; menu_items: AdminItem[] };
 
 export default async function AdminMenuPage() {
@@ -14,7 +14,7 @@ export default async function AdminMenuPage() {
 
   const { data, error } = await context.supabase
     .from("menu_categories")
-    .select("id, name, slug, description, position, is_active, menu_items(id, category_id, name, description, price_cents, allergens, is_vegetarian, is_available, position)")
+    .select("id, name, slug, description, position, is_active, menu_items(id, category_id, name, description, section, price_cents, allergens, is_vegetarian, is_available, position)")
     .order("position", { ascending: true })
     .order("position", { referencedTable: "menu_items", ascending: true });
 
@@ -66,6 +66,7 @@ export default async function AdminMenuPage() {
                     <label className="admin-field"><span>Prezzo (€)</span><input name="price" type="number" min="0" step="0.01" defaultValue={item.price_cents === null ? "" : (item.price_cents / 100).toFixed(2)} placeholder="Da definire" /></label>
                     <label className="admin-field"><span>Categoria</span><select name="category_id" defaultValue={item.category_id}>{categories.map((option) => <option value={option.id} key={option.id}>{option.name}</option>)}</select></label>
                     <label className="admin-field"><span>Ordine</span><input name="position" type="number" min="0" defaultValue={item.position} required /></label>
+                    <label className="admin-field admin-field-wide"><span>Sottocategoria</span><input name="section" defaultValue={item.section ?? ""} maxLength={80} placeholder="Es. Birre" /></label>
                     <label className="admin-field admin-field-wide"><span>Descrizione</span><textarea name="description" defaultValue={item.description ?? ""} maxLength={500} rows={2} /></label>
                     <label className="admin-field admin-field-wide"><span>Allergeni separati da virgola</span><input name="allergens" defaultValue={item.allergens.join(", ")} maxLength={300} /></label>
                     <div className="flex flex-wrap gap-5"><label className="admin-check"><input name="is_available" type="checkbox" defaultChecked={item.is_available} /> Disponibile</label><label className="admin-check"><input name="is_vegetarian" type="checkbox" defaultChecked={item.is_vegetarian} /> Vegetariano</label></div>
@@ -83,6 +84,7 @@ export default async function AdminMenuPage() {
                 <label className="admin-field"><span>Nome</span><input name="name" required maxLength={100} /></label>
                 <label className="admin-field"><span>Prezzo (€)</span><input name="price" type="number" min="0" step="0.01" placeholder="Da definire" /></label>
                 <label className="admin-field"><span>Ordine</span><input name="position" type="number" min="0" defaultValue={category.menu_items.length + 1} required /></label>
+                <label className="admin-field admin-field-wide"><span>Sottocategoria</span><input name="section" maxLength={80} placeholder="Es. Birre" /></label>
                 <label className="admin-field admin-field-wide"><span>Descrizione</span><textarea name="description" maxLength={500} rows={2} /></label>
                 <label className="admin-field admin-field-wide"><span>Allergeni separati da virgola</span><input name="allergens" maxLength={300} /></label>
                 <div className="flex flex-wrap gap-5"><label className="admin-check"><input name="is_available" type="checkbox" defaultChecked /> Disponibile</label><label className="admin-check"><input name="is_vegetarian" type="checkbox" /> Vegetariano</label></div>

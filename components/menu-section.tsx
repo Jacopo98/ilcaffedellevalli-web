@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Leaf, Wheat } from "lucide-react";
 import { useState } from "react";
-import type { MenuCategory } from "@/lib/menu";
+import type { MenuCategory, MenuItem } from "@/lib/menu";
 
 const euroFormatter = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -14,6 +14,12 @@ export function MenuSection({ categories }: { categories: MenuCategory[] }) {
   const [activeSlug, setActiveSlug] = useState(categories[0]?.slug ?? "");
 
   const activeCategory = categories.find((category) => category.slug === activeSlug) ?? categories[0];
+  const itemGroups = activeCategory?.items.reduce<Array<{ name: string | null; items: MenuItem[] }>>((groups, item) => {
+    const current = groups.find((group) => group.name === item.section);
+    if (current) current.items.push(item);
+    else groups.push({ name: item.section, items: [item] });
+    return groups;
+  }, []) ?? [];
 
   return (
     <section id="menu" className="relative bg-cream py-24 lg:py-36">
@@ -43,21 +49,33 @@ export function MenuSection({ categories }: { categories: MenuCategory[] }) {
           ))}
         </div>
 
-        <div className="mt-10 grid gap-x-16 lg:grid-cols-2">
-          {activeCategory?.items.map((item) => (
-            <article className="menu-item" key={item.id}>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display text-xl sm:text-2xl">{item.name}</h3>
-                  {item.isVegetarian && <Leaf className="text-orange" size={15} aria-label="Opzione vegetariana" />}
-                  {item.allergens.includes("glutine") && <Wheat className="text-orange" size={15} aria-label="Contiene glutine" />}
+        <div className="mt-10 space-y-12">
+          {itemGroups.map((group) => (
+            <section key={group.name ?? "principale"}>
+              {group.name && (
+                <div className="mb-3 flex items-center gap-4">
+                  <h3 className="font-display text-2xl text-orange sm:text-3xl">{group.name}</h3>
+                  <span className="h-px flex-1 bg-ink/15" aria-hidden="true" />
                 </div>
-                {item.description && <p className="mt-2 text-sm leading-relaxed text-ink/50">{item.description}</p>}
+              )}
+              <div className="grid gap-x-16 lg:grid-cols-2">
+                {group.items.map((item) => (
+                  <article className="menu-item" key={item.id}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display text-xl sm:text-2xl">{item.name}</h4>
+                        {item.isVegetarian && <Leaf className="text-orange" size={15} aria-label="Opzione vegetariana" />}
+                        {item.allergens.includes("glutine") && <Wheat className="text-orange" size={15} aria-label="Contiene glutine" />}
+                      </div>
+                      {item.description && <p className="mt-2 text-sm leading-relaxed text-ink/50">{item.description}</p>}
+                    </div>
+                    <p className="shrink-0 font-display text-xl text-orange">
+                      {item.priceCents === null ? "—" : euroFormatter.format(item.priceCents / 100)}
+                    </p>
+                  </article>
+                ))}
               </div>
-              <p className="shrink-0 font-display text-xl text-orange">
-                {item.priceCents === null ? "—" : euroFormatter.format(item.priceCents / 100)}
-              </p>
-            </article>
+            </section>
           ))}
         </div>
 
