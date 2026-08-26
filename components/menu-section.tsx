@@ -54,7 +54,9 @@ export function MenuSection({ categories }: { categories: MenuCategory[] }) {
                 </div>
                 {item.description && <p className="mt-2 text-sm leading-relaxed text-ink/50">{item.description}</p>}
               </div>
-              <p className="shrink-0 font-display text-xl text-orange">{euroFormatter.format(item.priceCents / 100)}</p>
+              <p className="shrink-0 font-display text-xl text-orange">
+                {item.priceCents === null ? "—" : euroFormatter.format(item.priceCents / 100)}
+              </p>
             </article>
           ))}
         </div>

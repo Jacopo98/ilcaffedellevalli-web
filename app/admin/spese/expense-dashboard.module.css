@@ -1,0 +1,239 @@
+.ledgerPanel :global(.ledger-hero) {
+  display: grid;
+  grid-template-columns: minmax(18rem, .8fr) minmax(34rem, 1.2fr);
+  align-items: stretch;
+  gap: 2rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid rgb(28 28 26 / 9%);
+}
+
+.ledgerPanel :global(.ledger-hero-copy) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ledgerPanel :global(.ledger-hero-copy h2) {
+  margin-top: .55rem;
+  font-family: var(--font-mina), sans-serif;
+  font-size: clamp(1.65rem, 2.6vw, 2.45rem);
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.ledgerPanel :global(.ledger-hero-copy > p:last-child) {
+  max-width: 32rem;
+  margin-top: .75rem;
+  color: rgb(28 28 26 / 50%);
+  font-size: .67rem;
+  line-height: 1.65;
+}
+
+.ledgerPanel :global(.ledger-metric-grid) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .7rem;
+}
+
+.ledgerPanel :global(.ledger-metric) {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 5.35rem;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  border: 1px solid rgb(28 28 26 / 8%);
+  border-radius: 1.15rem;
+  padding: .8rem .85rem .72rem;
+  background: #f7f5f1;
+}
+
+.ledgerPanel :global(.ledger-metric::before) {
+  position: absolute;
+  inset: 0 0 auto;
+  height: .2rem;
+  background: rgb(28 28 26 / 16%);
+  content: "";
+}
+
+.ledgerPanel :global(.ledger-metric.metric-income::before) { background: #248a50; }
+.ledgerPanel :global(.ledger-metric.metric-fixed::before) { background: var(--orange); }
+.ledgerPanel :global(.ledger-metric.metric-variable::before) { background: #d49b26; }
+
+.ledgerPanel :global(.ledger-metric span),
+.ledgerPanel :global(.ledger-metric small) {
+  color: rgb(28 28 26 / 46%);
+  font-size: .5rem;
+}
+
+.ledgerPanel :global(.ledger-metric small) {
+  position: absolute;
+  top: .78rem;
+  right: .85rem;
+  max-width: 48%;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledgerPanel :global(.ledger-metric span) {
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ledgerPanel :global(.ledger-metric strong) {
+  margin: auto 0 0;
+  font-family: var(--font-mina), sans-serif;
+  font-size: clamp(.82rem, 1.05vw, 1rem);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.ledgerPanel :global(.ledger-metric.metric-result) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: white;
+}
+
+.ledgerPanel :global(.ledger-metric.metric-result::before) { background: var(--orange); }
+.ledgerPanel :global(.ledger-metric.metric-result span),
+.ledgerPanel :global(.ledger-metric.metric-result small) { color: rgb(255 255 255 / 58%); }
+.ledgerPanel :global(.ledger-metric.metric-result strong) { color: white; }
+.ledgerPanel :global(.ledger-metric.metric-result.negative strong) { color: #ffab72; }
+
+.ledgerPanel :global(.fixed-cost-accordion) {
+  margin-top: 1.35rem;
+  overflow: hidden;
+  border: 1px solid rgb(28 28 26 / 10%);
+  border-radius: 1.25rem;
+  background: #faf9f7;
+  box-shadow: 0 .6rem 2rem rgb(28 28 26 / 4%);
+}
+
+.ledgerPanel :global(.fixed-cost-accordion-trigger) {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 3rem minmax(0, 1fr) auto 1.5rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  color: var(--ink);
+  text-align: left;
+}
+
+.ledgerPanel :global(.fixed-cost-accordion-icon) {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: .9rem;
+  background: #fff0e5;
+  color: var(--orange);
+}
+
+.ledgerPanel :global(.fixed-cost-accordion-icon svg) { width: 1.25rem; height: 1.25rem; }
+
+.ledgerPanel :global(.fixed-cost-accordion-copy),
+.ledgerPanel :global(.fixed-cost-accordion-total) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.ledgerPanel :global(.fixed-cost-accordion-copy small),
+.ledgerPanel :global(.fixed-cost-accordion-total small) {
+  color: rgb(28 28 26 / 42%);
+  font-size: .48rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.ledgerPanel :global(.fixed-cost-accordion-copy strong) { margin-top: .2rem; font-size: .74rem; }
+.ledgerPanel :global(.fixed-cost-accordion-copy em) { margin-top: .2rem; color: rgb(28 28 26 / 46%); font-size: .55rem; font-style: normal; }
+.ledgerPanel :global(.fixed-cost-accordion-total) { align-items: flex-end; }
+.ledgerPanel :global(.fixed-cost-accordion-total strong) { margin-top: .2rem; font-family: var(--font-mina), sans-serif; font-size: 1rem; white-space: nowrap; }
+.ledgerPanel :global(.fixed-cost-accordion-chevron) { width: 1rem; transition: transform .2s ease; }
+.ledgerPanel :global(.fixed-cost-accordion.is-open .fixed-cost-accordion-chevron) { transform: rotate(180deg); }
+
+.ledgerPanel :global(.fixed-cost-accordion-body) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+  border-top: 1px solid rgb(28 28 26 / 8%);
+  padding: .9rem 1rem 1rem;
+  background: white;
+}
+
+.ledgerPanel :global(.fixed-cost-detail-row) {
+  display: grid;
+  grid-template-columns: .35rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .75rem;
+  min-width: 0;
+  border: 1px solid rgb(28 28 26 / 8%);
+  border-radius: .9rem;
+  padding: .75rem .85rem;
+  background: #faf9f7;
+}
+
+.ledgerPanel :global(.fixed-cost-detail-marker) { width: .3rem; height: 2rem; border-radius: 999px; background: var(--orange); }
+.ledgerPanel :global(.fixed-cost-detail-copy) { display: flex; min-width: 0; align-items: center; gap: .55rem; }
+.ledgerPanel :global(.fixed-cost-detail-copy > strong) { overflow: hidden; font-size: .63rem; text-overflow: ellipsis; white-space: nowrap; }
+.ledgerPanel :global(.fixed-cost-detail-copy small) { flex: none; border-radius: 999px; padding: .25rem .42rem; background: #eeeae4; color: rgb(28 28 26 / 52%); font-size: .45rem; font-weight: 800; text-transform: uppercase; }
+.ledgerPanel :global(.fixed-cost-detail-copy small.status-paid),
+.ledgerPanel :global(.fixed-cost-detail-copy small.status-confirmed) { background: #e4f3e9; color: #248a50; }
+.ledgerPanel :global(.fixed-cost-detail-amount) { font-family: var(--font-mina), sans-serif; font-size: .72rem; white-space: nowrap; }
+.ledgerPanel :global(.fixed-cost-accordion-body > p) { grid-column: 1 / -1; padding: .8rem; color: rgb(28 28 26 / 45%); font-size: .62rem; text-align: center; }
+
+@media (max-width: 1100px) {
+  .ledgerPanel :global(.ledger-hero) { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .ledgerPanel :global(.ledger-metric-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ledgerPanel :global(.ledger-metric) { min-height: 5rem; padding: .75rem; }
+  .ledgerPanel :global(.ledger-metric small) { top: .73rem; right: .75rem; max-width: 46%; font-size: .44rem; }
+  .ledgerPanel :global(.fixed-cost-accordion-trigger) { grid-template-columns: 2.6rem minmax(0, 1fr) 1rem; gap: .75rem; padding: .9rem; }
+  .ledgerPanel :global(.fixed-cost-accordion-icon) { width: 2.6rem; height: 2.6rem; }
+  .ledgerPanel :global(.fixed-cost-accordion-total) { grid-column: 2; align-items: flex-start; padding-top: .4rem; border-top: 1px solid rgb(28 28 26 / 8%); }
+  .ledgerPanel :global(.fixed-cost-accordion-chevron) { grid-column: 3; grid-row: 1 / 3; }
+  .ledgerPanel :global(.fixed-cost-accordion-body) { grid-template-columns: 1fr; }
+  .ledgerPanel :global(.fixed-cost-detail-copy) { align-items: flex-start; flex-direction: column; gap: .3rem; }
+  .ledgerPanel :global(.fixed-cost-detail-copy > strong) { white-space: normal; }
+}
+
+.ledgerPanel {}
+
+.expensesPage :global(.cashflow-comparison) { margin-top: 1rem; }
+.expensesPage :global(.cashflow-comparison-heading) { align-items: flex-end; }
+.expensesPage :global(.cashflow-totals) { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.expensesPage :global(.cashflow-totals span) { display: grid; grid-template-columns: .45rem auto; align-items: center; gap: .12rem .35rem; color: rgb(28 28 26 / 45%); font-size: .52rem; font-weight: 800; text-transform: uppercase; }
+.expensesPage :global(.cashflow-totals span i) { width: .45rem; height: .45rem; border-radius: 50%; }
+.expensesPage :global(.cashflow-totals span i.income) { background: #248a73; }
+.expensesPage :global(.cashflow-totals span i.outgoing) { background: var(--orange); }
+.expensesPage :global(.cashflow-totals strong) { grid-column: 2; color: var(--ink); font-family: var(--font-mina),sans-serif; font-size: .75rem; }
+.expensesPage :global(.comparison-trend) { display: grid; align-items: end; gap: 1rem; min-height: 16rem; margin-top: 1.25rem; padding: .75rem .35rem 0; border-bottom: 1px solid rgb(28 28 26 / 10%); }
+.expensesPage :global(.comparison-trend.single) { grid-template-columns: minmax(10rem,18rem) !important; justify-content: center; }
+.expensesPage :global(.comparison-period) { display: grid; grid-template-rows: 12.5rem 1.5rem; align-items: end; min-width: 0; text-align: center; }
+.expensesPage :global(.comparison-value) { position: absolute; z-index: 2; left: 50%; font-size: .5rem; font-weight: 800; white-space: nowrap; transform: translateX(-50%); }
+.expensesPage :global(.comparison-value.income) { color: #248a73; }
+.expensesPage :global(.comparison-value.outgoing) { color: #b94f08; }
+.expensesPage :global(.comparison-bars) { display: grid; height: 100%; grid-template-columns: 1fr 1fr; align-items: end; gap: .35rem; padding-inline: clamp(.15rem,1vw,.65rem); }
+.expensesPage :global(.comparison-bars i) { position: relative; display: block; height: 100%; overflow: visible; border-radius: 0; background: transparent !important; box-shadow: none; }
+.expensesPage :global(.comparison-bars b) { position: absolute; right: 0; bottom: 0; left: 0; display: block; border-radius: .55rem .55rem 0 0; transition: height .35s ease; }
+.expensesPage :global(.comparison-bars b.income) { background: linear-gradient(to top,#248a73,#65b99f); }
+.expensesPage :global(.comparison-bars b.outgoing) { background: linear-gradient(to top,#d95708,var(--orange)); }
+.expensesPage :global(.comparison-period > small) { padding-top: .45rem; color: rgb(28 28 26 / 48%); font-size: .54rem; font-weight: 800; text-transform: capitalize; }
+
+@media (max-width: 700px) {
+  .expensesPage :global(.cashflow-comparison-heading) { align-items: flex-start; flex-direction: column; }
+  .expensesPage :global(.comparison-trend) { gap: .4rem; min-height: 14rem; }
+  .expensesPage :global(.comparison-period) { grid-template-rows: 10.5rem 1.5rem; }
+  .expensesPage :global(.comparison-value) { font-size: .42rem; }
+  .expensesPage :global(.comparison-bars) { gap: .15rem; padding-inline: .08rem; }
+}

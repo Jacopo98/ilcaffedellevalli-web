@@ -7,7 +7,7 @@ export type MenuItem = {
   id: number;
   name: string;
   description: string | null;
-  priceCents: number;
+  priceCents: number | null;
   allergens: string[];
   isVegetarian: boolean;
 };
@@ -23,7 +23,7 @@ type MenuItemRow = {
   id: number;
   name: string;
   description: string | null;
-  price_cents: number;
+  price_cents: number | null;
   allergens: string[] | null;
   is_vegetarian: boolean;
   position: number;

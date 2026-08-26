@@ -8,7 +8,7 @@ drop constraint if exists work_shifts_entry_type_check;
 
 alter table public.work_shifts
 add constraint work_shifts_entry_type_check
-check (entry_type in ('work', 'rol', 'holiday', 'sick'));
+check (entry_type in ('work', 'extra', 'rol', 'holiday', 'sick'));
 
 comment on column public.work_shifts.entry_type is
-'Tipologia evento: work=lavoro, rol=ROL, holiday=ferie, sick=malattia';
+'Tipologia evento: work=lavoro, extra=ore extra, rol=ROL, holiday=ferie, sick=malattia';

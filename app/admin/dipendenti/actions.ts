@@ -21,7 +21,7 @@ const employeeSchema = z.object({
 });
 const shiftSchema = z.object({
   employeeId: idSchema,
-  entryType: z.enum(["work", "rol", "holiday", "sick"]),
+  entryType: z.enum(["work", "extra", "rol", "holiday", "sick"]),
   shiftDate: z.iso.date(),
   startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
@@ -81,7 +81,7 @@ export async function createShift(formData: FormData): Promise<EmployeeActionRes
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message || "Controlla gli orari inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const isWork = value.entryType === "work";
+  const isWork = value.entryType === "work" || value.entryType === "extra";
   const { error } = await supabase.from("work_shifts").insert({ employee_id: value.employeeId, entry_type: value.entryType, shift_date: value.shiftDate, start_time: value.startTime, end_time: value.endTime, actual_start_time: isWork ? value.actualStartTime : null, actual_end_time: isWork ? value.actualEndTime : null, break_minutes: isWork ? value.breakMinutes : 0, notes: value.notes });
   if (error) return shiftError(error.code);
   refreshSchedule();
@@ -94,7 +94,7 @@ export async function updateShift(formData: FormData): Promise<EmployeeActionRes
   if (!id.success || !parsed.success) return { ok: false, error: parsed.success ? "Turno non valido." : parsed.error.issues[0]?.message };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const isWork = value.entryType === "work";
+  const isWork = value.entryType === "work" || value.entryType === "extra";
   const { error } = await supabase.from("work_shifts").update({ employee_id: value.employeeId, entry_type: value.entryType, shift_date: value.shiftDate, start_time: value.startTime, end_time: value.endTime, actual_start_time: isWork ? value.actualStartTime : null, actual_end_time: isWork ? value.actualEndTime : null, break_minutes: isWork ? value.breakMinutes : 0, notes: value.notes }).eq("id", id.data);
   if (error) return shiftError(error.code);
   refreshSchedule();

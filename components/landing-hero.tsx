@@ -2,23 +2,10 @@
 
 import Image from "next/image";
 import { ChevronDown } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function LandingHero() {
   const [scrolled, setScrolled] = useState(false);
-  const clicks = useRef<number[]>([]);
-  const router = useRouter();
-
-  function handleLogoClick() {
-    const now = Date.now();
-    clicks.current = [...clicks.current.filter((time) => now - time < 900), now];
-    if (clicks.current.length >= 3) {
-      clicks.current = [];
-      router.push("/login");
-    }
-  }
-
   useEffect(() => {
     let frame = 0;
     const update = () => {
@@ -77,9 +64,9 @@ export function LandingHero() {
         </div>
         <div className="hero-center">
           <h1 className="sr-only">Il Caffè delle Valli</h1>
-          <button className="hero-login-trigger" type="button" onClick={handleLogoClick} aria-label="Il Caffè delle Valli">
+          <div className="hero-login-trigger">
             <Image className="hero-main-logo" src="/Logo_black_trasparent.png" alt="Il Caffè delle Valli" width={2843} height={820} priority />
-          </button>
+          </div>
           <p className="hero-tagline">Piccoli piaceri, <span>grandi abitudini.</span></p>
         </div>
         <a className="scroll-cue" href="#menu" aria-label="Scopri il menu">

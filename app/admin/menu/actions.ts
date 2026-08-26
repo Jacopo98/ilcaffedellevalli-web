@@ -14,7 +14,10 @@ const itemSchema = z.object({
   categoryId: idSchema,
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500),
-  price: z.coerce.number().min(0).max(9999),
+  price: z.preprocess(
+    (value) => value === "" || value === null ? null : Number(value),
+    z.number().min(0).max(9999).nullable(),
+  ),
   allergens: z.string().trim().max(300),
   position: z.coerce.number().int().min(0).max(999),
 });
@@ -63,7 +66,7 @@ function parseItem(formData: FormData) {
     category_id: values.categoryId,
     name: values.name,
     description: values.description || null,
-    price_cents: Math.round(values.price * 100),
+    price_cents: values.price === null ? null : Math.round(values.price * 100),
     allergens: values.allergens.split(",").map((value) => value.trim().toLowerCase()).filter(Boolean),
     is_vegetarian: formData.get("is_vegetarian") === "on",
     is_available: formData.get("is_available") === "on",

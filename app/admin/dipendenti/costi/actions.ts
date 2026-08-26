@@ -1,0 +1,8 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/auth";
+
+export type CostResult={ok:boolean;error?:string};
+const schema=z.object({employeeId:z.coerce.number().int().positive(),month:z.string().regex(/^\d{4}-\d{2}$/),baseHours:z.coerce.number().min(0).max(744),extraHours:z.coerce.number().min(0).max(744),baseRate:z.coerce.number().min(0).max(10000),extraRate:z.coerce.number().min(0).max(10000),notes:z.string().trim().max(1000)});
+export async function confirmEmployeeCost(formData:FormData):Promise<CostResult>{const parsed=schema.safeParse({employeeId:formData.get("employee_id"),month:formData.get("month"),baseHours:formData.get("base_hours"),extraHours:formData.get("extra_hours"),baseRate:formData.get("base_rate"),extraRate:formData.get("extra_rate"),notes:formData.get("notes")??""});if(!parsed.success)return{ok:false,error:"Controlla ore e tariffe."};const {supabase,profile}=await requireAdmin();const v=parsed.data;const {error}=await supabase.from("employee_monthly_costs").upsert({employee_id:v.employeeId,competence_month:`${v.month}-01`,scheduled_base_hours:Number(formData.get("scheduled_base_hours")??0),scheduled_extra_hours:Number(formData.get("scheduled_extra_hours")??0),confirmed_base_hours:v.baseHours,confirmed_extra_hours:v.extraHours,base_hourly_rate_cents:Math.round(v.baseRate*100),extra_hourly_rate_cents:Math.round(v.extraRate*100),status:"confirmed",confirmed_at:new Date().toISOString(),confirmed_by:profile.id,notes:v.notes||null},{onConflict:"employee_id,competence_month"});if(error)return{ok:false,error:"Impossibile confermare il costo."};revalidatePath("/admin/dipendenti/costi");revalidatePath("/admin/spese");return{ok:true};}
