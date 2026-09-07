@@ -130,6 +130,29 @@ button { cursor: pointer; }
 .admin-notification-link:hover { border-color: var(--orange); color: white; }
 .admin-notification-link svg { color: white; stroke: white; }
 .admin-notification-link span { position: absolute; top: -.28rem; right: -.28rem; display: grid; min-width: 1.15rem; height: 1.15rem; place-items: center; border: 2px solid var(--ink); border-radius: 999px; padding: 0 .22rem; background: var(--orange); color: white; font-size: .48rem; font-weight: 900; line-height: 1; }
+.admin-profile-link { display: flex; align-items: center; gap: .65rem; color: rgba(255,255,255,.78); }
+.admin-profile-link > svg { display: none; }
+.admin-profile-link strong,.admin-profile-link small { display: block; }
+.admin-profile-link strong { max-width: 15rem; overflow: hidden; color: white; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.admin-profile-link small { margin-top: .1rem; color: rgba(255,255,255,.42); font-size: .67rem; text-transform: capitalize; }
+.admin-profile-link:hover strong { color: var(--orange); }
+.profile-page { padding-block: clamp(2rem,5vw,4rem); }
+.profile-page-heading { margin-top: 2rem; }
+.profile-page-heading h1 { margin-top: .6rem; font-family: var(--font-mina),sans-serif; font-size: clamp(2.5rem,6vw,4.8rem); line-height: 1; letter-spacing: -.05em; }
+.profile-page-heading > p:last-child { margin-top: .9rem; color: rgba(28,28,26,.5); font-size: .82rem; }
+.profile-layout { display: grid; grid-template-columns: minmax(15rem,.65fr) minmax(0,1.35fr); gap: 1rem; margin-top: 2rem; }
+.profile-identity,.profile-security-form { border: 1px solid rgba(28,28,26,.1); border-radius: 1.5rem; padding: clamp(1.25rem,3vw,2rem); background: white; box-shadow: 0 .75rem 2.5rem rgba(28,28,26,.04); }
+.profile-avatar,.profile-security-heading > span { display: grid; width: 3.5rem; height: 3.5rem; margin-bottom: 1.5rem; place-items: center; border-radius: 1rem; background: rgba(232,101,10,.1); color: var(--orange); }
+.profile-identity h2 { margin-top: .4rem; font-family: var(--font-mina),sans-serif; font-size: 1.7rem; }
+.profile-identity dl { display: grid; gap: 1rem; margin-top: 2rem; }
+.profile-identity dt { display: flex; align-items: center; gap: .4rem; color: rgba(28,28,26,.4); font-size: .62rem; font-weight: 800; text-transform: uppercase; }
+.profile-identity dd { margin-top: .25rem; overflow-wrap: anywhere; font-size: .76rem; font-weight: 700; }
+.profile-security-heading { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
+.profile-security-heading > span { flex: 0 0 3.5rem; margin: 0; }
+.profile-security-heading h2 { margin-top: .35rem; font-family: var(--font-mina),sans-serif; font-size: 1.8rem; }
+.profile-security-heading div > p:last-child { margin-top: .3rem; color: rgba(28,28,26,.48); font-size: .72rem; }
+.profile-password-hint { margin-top: 1rem; color: rgba(28,28,26,.42); font-size: .67rem; }
+.profile-success { margin-top: 1rem; border-radius: .7rem; padding: .8rem; background: rgba(36,138,115,.1); color: #176956; font-size: .76rem; font-weight: 700; }
 .admin-container { width: min(100% - 2rem,1120px); margin-inline: auto; }
 .admin-dashboard-main { padding-block: clamp(1.4rem,3vw,2.4rem); }
 .admin-welcome { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 2rem; overflow: hidden; border-radius: 1.5rem; padding: clamp(1.25rem,2.4vw,1.8rem) clamp(1.5rem,4vw,3rem); background: linear-gradient(135deg,#242421,#141412); color: white; box-shadow: 0 1rem 3rem rgba(28,28,26,.11); }
@@ -385,12 +408,14 @@ button { cursor: pointer; }
   .shift-card span { font-size: .52rem; }
   .hour-line { display: none; }
   .employee-grid { grid-template-columns: 1fr; }
+  .profile-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 639px) {
   .admin-shell { align-items: start; padding: 4.5rem .75rem 1rem; overflow: auto; }
   .login-frame { border-radius: 1.35rem; }
   .login-brand-panel { min-height: 11rem; }
   .login-form-panel { padding: 1.75rem 1.35rem 2rem; }
+  .admin-profile-link > svg { display: block; color: white; }
   .admin-brand span { display: none; }
   .admin-welcome { align-items: flex-start; padding: 2rem 1.5rem; }
   .admin-section-heading { align-items: flex-start; }
