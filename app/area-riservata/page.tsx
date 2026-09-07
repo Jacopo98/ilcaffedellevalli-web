@@ -11,8 +11,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function ReservedAreaPage() {
+export default async function ReservedAreaPage({ searchParams }: { searchParams: Promise<{ auth_error?: string }> }) {
   if (await getCurrentProfile()) redirect("/admin");
+  const invitationError = (await searchParams).auth_error === "link_non_valido";
   return (
     <main className="admin-shell">
       <Link className="admin-back-link" href="/"><ArrowLeft size={16} /> Torna al sito</Link>
@@ -26,6 +27,7 @@ export default async function ReservedAreaPage() {
           <div className="login-form-heading"><span className="login-security-icon"><ShieldCheck size={20} /></span><p>Accesso protetto</p></div>
           <h1>Bentornato.</h1>
           <p className="login-intro">Inserisci le credenziali assegnate per accedere alla dashboard.</p>
+          {invitationError && <p className="admin-error" role="alert">Il link di invito non è valido o è scaduto. Chiedi all’amministratore di inviarne uno nuovo.</p>}
           <LoginForm />
           <p className="login-help">Non ricordi le credenziali? Contatta l’amministratore del sito.</p>
         </section>

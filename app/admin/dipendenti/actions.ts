@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 export type EmployeeActionResult = { ok: boolean; error?: string };
 
 const idSchema = z.coerce.number().int().positive();
+const dateSchema = z.iso.date();
 const optionalText = (max: number) => z.string().trim().max(max).transform((value) => value || null);
 const employeeSchema = z.object({
   firstName: z.string().trim().min(1).max(60),
@@ -35,6 +36,12 @@ const shiftSchema = z.object({
 function refreshSchedule() {
   revalidatePath("/admin/dipendenti");
   revalidatePath("/admin");
+}
+
+function addDays(value: string, amount: number) {
+  const date = new Date(`${value}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
 }
 
 function employeeValues(formData: FormData) {
@@ -107,6 +114,64 @@ export async function deleteShift(formData: FormData): Promise<EmployeeActionRes
   const { supabase } = await requireAdmin();
   const { error } = await supabase.from("work_shifts").delete().eq("id", id.data);
   if (error) return { ok: false, error: "Impossibile eliminare il turno." };
+  refreshSchedule();
+  return { ok: true };
+}
+
+export async function duplicateWeek(formData: FormData): Promise<EmployeeActionResult> {
+  const sourceWeek = dateSchema.safeParse(formData.get("source_week"));
+  const targetWeek = dateSchema.safeParse(formData.get("target_week"));
+  if (!sourceWeek.success || !targetWeek.success) return { ok: false, error: "Settimana non valida." };
+
+  const { supabase } = await requireAdmin();
+  const targetEnd = addDays(targetWeek.data, 6);
+  const { count, error: targetError } = await supabase
+    .from("work_shifts")
+    .select("id", { count: "exact", head: true })
+    .gte("shift_date", targetWeek.data)
+    .lte("shift_date", targetEnd);
+  if (targetError) return { ok: false, error: "Impossibile controllare la settimana di destinazione." };
+  if ((count ?? 0) > 0) return { ok: false, error: "La settimana di destinazione contiene già dei turni. Svuotala prima di duplicare." };
+
+  const sourceEnd = addDays(sourceWeek.data, 6);
+  const { data: sourceShifts, error: sourceError } = await supabase
+    .from("work_shifts")
+    .select("employee_id, entry_type, shift_date, start_time, end_time, break_minutes, notes")
+    .gte("shift_date", sourceWeek.data)
+    .lte("shift_date", sourceEnd)
+    .order("shift_date")
+    .order("start_time");
+  if (sourceError) return { ok: false, error: "Impossibile leggere la settimana da copiare." };
+  if (!sourceShifts?.length) return { ok: false, error: "La settimana scelta non contiene turni da duplicare." };
+
+  const dayOffset = Math.round((new Date(`${targetWeek.data}T12:00:00Z`).getTime() - new Date(`${sourceWeek.data}T12:00:00Z`).getTime()) / 86_400_000);
+  const rows = sourceShifts.map((shift) => ({
+    employee_id: shift.employee_id,
+    entry_type: shift.entry_type,
+    shift_date: addDays(shift.shift_date, dayOffset),
+    start_time: shift.start_time,
+    end_time: shift.end_time,
+    actual_start_time: null,
+    actual_end_time: null,
+    break_minutes: shift.break_minutes,
+    notes: shift.notes,
+  }));
+  const { error } = await supabase.from("work_shifts").insert(rows);
+  if (error) return shiftError(error.code);
+  refreshSchedule();
+  return { ok: true };
+}
+
+export async function clearWeek(formData: FormData): Promise<EmployeeActionResult> {
+  const week = dateSchema.safeParse(formData.get("week"));
+  if (!week.success) return { ok: false, error: "Settimana non valida." };
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase
+    .from("work_shifts")
+    .delete()
+    .gte("shift_date", week.data)
+    .lte("shift_date", addDays(week.data, 6));
+  if (error) return { ok: false, error: "Impossibile svuotare la settimana." };
   refreshSchedule();
   return { ok: true };
 }

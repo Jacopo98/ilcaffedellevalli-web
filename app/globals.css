@@ -196,6 +196,7 @@ button { cursor: pointer; }
 .schedule-actions { display: flex; gap: .45rem; }
 .schedule-actions button { display: flex; align-items: center; gap: .45rem; border: 1px solid rgba(28,28,26,.11); border-radius: 999px; padding: .7rem .9rem; color: rgba(28,28,26,.58); font-size: .68rem; font-weight: 800; }
 .schedule-actions button:hover { border-color: var(--orange); color: var(--orange); }
+.schedule-actions button.schedule-danger:hover { border-color: #c54135; color: #c54135; }
 .share-filter { align-items: flex-start; justify-content: flex-start; border-inline: 1px solid rgba(28,28,26,.1); padding: .8rem 1rem; background: #faf8f5; }
 .share-filter > div:first-child { display: flex; flex: 0 0 auto; align-items: center; gap: .45rem; padding-top: .35rem; color: rgba(28,28,26,.43); font-size: .66rem; font-weight: 800; }
 .share-employees { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -254,6 +255,18 @@ button { cursor: pointer; }
 .modal-close { position: absolute; top: 1rem; right: 1rem; display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: 50%; color: rgba(28,28,26,.4); }
 .modal-close:hover { background: white; color: var(--ink); }
 .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; margin-top: .5rem; }
+.week-operation-modal { width: min(100%,31rem); }
+.week-operation-modal h2 { margin-bottom: .65rem; }
+.week-operation-icon { display: grid; width: 3.25rem; height: 3.25rem; margin-bottom: 1.35rem; place-items: center; border-radius: 1rem; background: rgba(232,101,10,.12); color: var(--orange); }
+.week-operation-icon.danger { background: rgba(197,65,53,.1); color: #c54135; }
+.week-operation-intro { color: rgba(28,28,26,.55); font-size: .8rem; line-height: 1.65; }
+.week-source-field { margin-top: 1.4rem; }
+.week-operation-summary { display: grid; gap: .22rem; margin-block: 1.1rem 1.5rem; border: 1px solid rgba(232,101,10,.2); border-radius: 1rem; padding: 1rem 1.1rem; background: rgba(232,101,10,.06); }
+.week-operation-summary.danger { border-color: rgba(197,65,53,.18); background: rgba(197,65,53,.055); }
+.week-operation-summary span { color: var(--orange); font-size: .58rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.week-operation-summary.danger span { color: #c54135; }
+.week-operation-summary strong { font-family: var(--font-mina),sans-serif; font-size: 1.05rem; }
+.week-operation-summary small { color: rgba(28,28,26,.42); font-size: .64rem; }
 .payroll-export { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 1.25rem; margin-top: 1.25rem; border: 1px solid rgba(28,28,26,.1); border-radius: 1.5rem; padding: 1.4rem; background: var(--ink); color: white; }
 .payroll-icon { display: grid; width: 3.2rem; height: 3.2rem; place-items: center; border-radius: 1rem; background: rgba(232,101,10,.14); color: var(--orange); }
 .payroll-export h2 { margin-top: .25rem; font-family: var(--font-mina),sans-serif; font-size: 1.35rem; }
