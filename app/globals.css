@@ -410,6 +410,8 @@ button { cursor: pointer; }
   .employee-grid { grid-template-columns: 1fr; }
   .profile-layout { grid-template-columns: 1fr; }
 }
+.revenue-calculated-input { cursor: default; border-color: rgba(36,138,115,.2) !important; background: rgba(36,138,115,.08) !important; color: #176956 !important; font-weight: 800; }
+.revenue-field-help { color: rgba(28,28,26,.42); font-size: .62rem; line-height: 1.5; }
 @media (max-width: 639px) {
   .admin-shell { align-items: start; padding: 4.5rem .75rem 1rem; overflow: auto; }
   .login-frame { border-radius: 1.35rem; }
@@ -796,4 +798,15 @@ button { cursor: pointer; }
   .payroll-report .report-logo-panel { min-height: 16mm; border-radius: 3mm; padding: 3mm; }
   .payroll-report .report-footer { position: fixed; right: 0; bottom: -12mm; left: 0; z-index: 10; margin: 0; border-top: 1px solid #d8d5d0; padding-top: 2.5mm; background: white; }
   .report-details { margin-top: 8mm; break-before: auto; }
+}
+
+.fixed-plan-grid article.unvalued {
+  border-color: rgba(232, 101, 10, .38);
+  background: #fff7f0;
+  box-shadow: inset .22rem 0 0 var(--orange);
+}
+
+.fixed-plan-grid article.unvalued .plan-month-value strong {
+  color: var(--orange);
+  font-size: .65rem;
 }

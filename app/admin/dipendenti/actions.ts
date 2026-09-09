@@ -16,10 +16,14 @@ const employeeSchema = z.object({
   email: z.union([z.literal(""), z.email().max(254)]).transform((value) => value || null),
   roleTitle: z.string().trim().min(1).max(80),
   hireDate: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
+  contractLevel: optionalText(80),
+  ral: z.union([z.literal(""), z.coerce.number().min(0).max(10000000)]).transform((value) => value === "" ? null : value),
+  contractStart: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
+  contractEnd: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
   weeklyHours: z.union([z.literal(""), z.coerce.number().min(0).max(168)]).transform((value) => value === "" ? null : value),
   notes: optionalText(1000),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-});
+}).refine((value) => value.contractEnd === null || value.contractStart === null || value.contractEnd >= value.contractStart, { message: "La fine del contratto non può precedere l’inizio.", path: ["contractEnd"] });
 const shiftSchema = z.object({
   employeeId: idSchema,
   entryType: z.enum(["work", "extra", "rol", "holiday", "sick"]),
@@ -36,6 +40,7 @@ const shiftSchema = z.object({
 function refreshSchedule() {
   revalidatePath("/admin/dipendenti");
   revalidatePath("/admin");
+  revalidatePath("/admin/spese");
 }
 
 function addDays(value: string, amount: number) {
@@ -48,6 +53,7 @@ function employeeValues(formData: FormData) {
   return employeeSchema.safeParse({
     firstName: formData.get("first_name"), lastName: formData.get("last_name") ?? "", phone: formData.get("phone") ?? "",
     email: formData.get("email") ?? "", roleTitle: formData.get("role_title") ?? "Collaboratore", hireDate: formData.get("hire_date") ?? "",
+    contractLevel: formData.get("contract_level") ?? "", ral: formData.get("ral") ?? "", contractStart: formData.get("contract_start") ?? "", contractEnd: formData.get("contract_end") ?? "",
     weeklyHours: formData.get("weekly_contract_hours") ?? "", notes: formData.get("notes") ?? "", color: formData.get("color") ?? "#E8650A",
   });
 }
@@ -57,7 +63,7 @@ export async function createEmployee(formData: FormData): Promise<EmployeeAction
   if (!parsed.success) return { ok: false, error: "Controlla i dati inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const { error } = await supabase.from("employees").insert({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: true });
+  const { error } = await supabase.from("employees").insert({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: true });
   if (error) return { ok: false, error: error.code === "23505" ? "Questo dipendente è già presente." : "Impossibile creare il dipendente." };
   refreshSchedule();
   return { ok: true };
@@ -69,7 +75,7 @@ export async function updateEmployee(formData: FormData): Promise<EmployeeAction
   if (!id.success || !parsed.success) return { ok: false, error: "Controlla i dati inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
+  const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
   if (error) return { ok: false, error: error.code === "23505" ? "Esiste già un dipendente con questo nome." : "Impossibile salvare il dipendente." };
   refreshSchedule();
   return { ok: true };

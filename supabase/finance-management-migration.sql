@@ -8,7 +8,7 @@ create table if not exists public.recurring_cost_plans (
   supplier text,
   annual_amount_cents integer check (annual_amount_cents is null or annual_amount_cents >= 0),
   competence_start date not null,
-  competence_end date not null,
+  competence_end date,
   payment_frequency text not null check (payment_frequency in ('monthly','bimonthly','quarterly','yearly','custom')),
   payment_months smallint[] not null default '{}',
   payment_day smallint not null default 1 check (payment_day between 1 and 28),

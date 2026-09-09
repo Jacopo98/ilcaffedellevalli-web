@@ -17,6 +17,7 @@ create table public.expenses (
   description text not null check (char_length(description) between 1 and 160),
   supplier text check (supplier is null or char_length(supplier) <= 120),
   invoice_number text check (invoice_number is null or char_length(invoice_number) <= 80),
+  is_invoice boolean not null default false,
   expense_date date not null default current_date,
   due_date date,
   paid_date date,

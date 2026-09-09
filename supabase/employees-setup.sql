@@ -10,13 +10,18 @@ create table public.employees (
   email text check (email is null or char_length(email) <= 254),
   role_title text not null default 'Collaboratore' check (char_length(role_title) <= 80),
   hire_date date,
+  contract_level text check (contract_level is null or char_length(contract_level) <= 80),
+  ral_cents integer check (ral_cents is null or ral_cents >= 0),
+  contract_start date,
+  contract_end date,
   weekly_contract_hours numeric(5,2) check (weekly_contract_hours is null or weekly_contract_hours between 0 and 168),
   notes text check (notes is null or char_length(notes) <= 1000),
   color text not null default '#E8650A' check (color ~ '^#[0-9A-Fa-f]{6}$'),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (first_name, last_name)
+  unique (first_name, last_name),
+  check (contract_end is null or contract_start is null or contract_end >= contract_start)
 );
 
 create table public.work_shifts (
