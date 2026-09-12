@@ -792,6 +792,9 @@ button { cursor: pointer; }
   .hour-line { display: block !important; top: var(--print-top) !important; }
   .day-timeline { height: 420px !important; background: transparent !important; }
   .shift-card { position: absolute; top: var(--print-top) !important; right: auto !important; left: var(--print-left) !important; width: var(--print-width) !important; height: var(--print-height) !important; min-width: 0 !important; margin: 0 !important; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .shift-card-compact { padding: .2rem !important; }
+  .shift-card-compact strong { order: -1; width: auto; max-height: 100%; overflow: hidden; writing-mode: vertical-rl; text-orientation: mixed; text-overflow: clip; }
+  .shift-card-compact span { display: none; }
   .hours-recap { break-inside: avoid; margin-top: 8mm; box-shadow: none; }
   .payroll-report { width: 100%; margin: 0; border: 0; border-radius: 0; padding: 0 0 8mm; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .payroll-report .report-header { grid-template-columns: 38mm minmax(0,1fr); gap: 7mm; padding-bottom: 5mm; }
