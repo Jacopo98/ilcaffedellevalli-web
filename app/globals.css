@@ -247,6 +247,10 @@ button { cursor: pointer; }
 .shift-card strong { width: 100%; overflow: hidden; font-size: .61rem; text-overflow: ellipsis; white-space: nowrap; }
 .shift-card span { margin-top: .12rem; font-size: .53rem; opacity: .58; white-space: nowrap; }
 .shift-card em { width: 100%; overflow: hidden; margin-bottom: .12rem; font-size: .44rem; font-style: normal; font-weight: 900; letter-spacing: .08em; opacity: .65; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.shift-card-compact { padding: .35rem .2rem; }
+.shift-card-compact strong { order: -1; width: auto; max-height: 100%; writing-mode: vertical-rl; text-orientation: mixed; text-overflow: clip; }
+.shift-card-compact span { display: none; }
+.shift-card-compact em { width: auto; max-width: 100%; }
 .shift-type-rol,.shift-type-holiday,.shift-type-sick { background-image: repeating-linear-gradient(135deg,rgba(255,255,255,.2) 0,rgba(255,255,255,.2) 4px,transparent 4px,transparent 8px) !important; }
 .hours-recap { margin-top: 2rem; border: 1px solid rgba(28,28,26,.1); border-radius: 1.5rem; padding: clamp(1.25rem,4vw,2rem); background: white; }
 .recap-heading h2 { margin-top: .45rem; font-family: var(--font-mina),sans-serif; font-size: 1.8rem; }
@@ -406,6 +410,9 @@ button { cursor: pointer; }
   .shift-card { top: calc(2rem + var(--mobile-row) * 3rem) !important; right: auto; left: calc(var(--mobile-left) + .2rem) !important; width: max(2.75rem,calc(var(--mobile-width) - .4rem)) !important; height: 2.45rem !important; min-height: 0; margin: 0; padding: .4rem .5rem; }
   .shift-card strong { font-size: .62rem; }
   .shift-card span { font-size: .52rem; }
+  .shift-card-compact { padding: .4rem .5rem; }
+  .shift-card-compact strong { order: 0; width: 100%; max-height: none; writing-mode: horizontal-tb; overflow: hidden; text-overflow: ellipsis; }
+  .shift-card-compact span { display: block; }
   .hour-line { display: none; }
   .employee-grid { grid-template-columns: 1fr; }
   .profile-layout { grid-template-columns: 1fr; }
