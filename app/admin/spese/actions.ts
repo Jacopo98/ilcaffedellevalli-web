@@ -55,8 +55,9 @@ export async function updateExpenseCategory(formData: FormData): Promise<Expense
   if (error) return { ok: false, error: "Impossibile aggiornare la categoria." }; done(); return { ok: true };
 }
 
+const revenueMoney = z.string().trim().min(1).transform((value) => Number(value.replace(",", "."))).pipe(z.number().finite().min(0).max(1000000));
 const revenueSchema = z.object({
-  date: z.iso.date(), dailyCount: z.coerce.number().min(0).max(1000000), total: z.coerce.number().min(0).max(1000000), pos: z.coerce.number().min(0).max(1000000),
+  date: z.iso.date(), dailyCount: revenueMoney, total: revenueMoney, pos: revenueMoney,
   briochesCount: z.string().trim().min(1, "Inserisci il numero di brioches, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
   lunchCoversCount: z.string().trim().min(1, "Inserisci il numero di coperti, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
   notes: optional(1000),
