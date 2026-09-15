@@ -918,6 +918,11 @@ button { cursor: pointer; }
   line-height: 1.35;
 }
 
+/* Fullscreen da smartphone: un giorno per riga, con la timeline orizzontale mobile. */
+@media screen and (max-width: 639px) {
+  .schedule-focus.is-expanded .week-calendar { grid-template-columns: minmax(0,1fr); }
+}
+
 /* Solo smartphone: menu compatto delle sezioni economiche. */
 .expense-tabs button:focus-visible,.expense-mobile-sections button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 .expense-mobile-sections { display: none; }
