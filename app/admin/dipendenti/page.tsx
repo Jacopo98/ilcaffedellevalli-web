@@ -11,10 +11,11 @@ function mondayOf(value?: string) {
   return utc;
 }
 
-export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
+export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ week?: string; focus?: string }> }) {
   let context;
   try { context = await requireAdmin(); } catch { redirect("/admin"); }
-  const monday = mondayOf((await searchParams).week);
+  const params = await searchParams;
+  const monday = mondayOf(params.week);
   const sunday = new Date(monday); sunday.setUTCDate(sunday.getUTCDate() + 6);
 
   const [employeesResult, shiftsResult] = await Promise.all([
@@ -23,5 +24,5 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
   ]);
   if (employeesResult.error || shiftsResult.error) throw new Error("Impossibile caricare dipendenti e turni. Hai eseguito employees-setup.sql su Supabase?");
 
-  return <EmployeeSchedule employees={employeesResult.data ?? []} shifts={shiftsResult.data ?? []} weekStart={isoDate(monday)} />;
+  return <EmployeeSchedule employees={employeesResult.data ?? []} shifts={shiftsResult.data ?? []} weekStart={isoDate(monday)} openFullscreen={params.focus === "1"} />;
 }

@@ -41,5 +41,5 @@ export async function login(_: LoginState, formData: FormData): Promise<LoginSta
 export async function logout() {
   const supabase = await createAuthClient();
   await supabase.auth.signOut();
-  redirect("/");
+  redirect("/area-riservata");
 }

@@ -56,14 +56,17 @@ export async function updateExpenseCategory(formData: FormData): Promise<Expense
 }
 
 const revenueSchema = z.object({
-  date: z.iso.date(), dailyCount: z.coerce.number().min(0).max(1000000), total: z.coerce.number().min(0).max(1000000), pos: z.coerce.number().min(0).max(1000000), notes: optional(1000),
+  date: z.iso.date(), dailyCount: z.coerce.number().min(0).max(1000000), total: z.coerce.number().min(0).max(1000000), pos: z.coerce.number().min(0).max(1000000),
+  briochesCount: z.string().trim().min(1, "Inserisci il numero di brioches, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
+  lunchCoversCount: z.string().trim().min(1, "Inserisci il numero di coperti, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
+  notes: optional(1000),
 }).refine((value) => value.pos <= value.total, { message: "Il POS non può superare la chiusura totale.", path: ["pos"] });
 
 export async function saveDailyRevenue(formData: FormData): Promise<ExpenseActionResult> {
-  const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), dailyCount: formData.get("daily_count"), total: formData.get("total"), pos: formData.get("pos"), notes: formData.get("notes") ?? "" });
+  const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), dailyCount: formData.get("daily_count"), total: formData.get("total"), pos: formData.get("pos"), briochesCount: formData.get("brioches_count") ?? "", lunchCoversCount: formData.get("lunch_covers_count") ?? "", notes: formData.get("notes") ?? "" });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Controlla i dati dell'incasso." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
-  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, cash_cents: cents(value.total - value.pos), pos_cents: cents(value.pos), other_cents: cents(value.dailyCount), refunds_cents: 0, receipt_count: null, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
+  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, cash_cents: cents(value.total - value.pos), pos_cents: cents(value.pos), other_cents: cents(value.dailyCount), refunds_cents: 0, receipt_count: null, brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
   if (error) return { ok: false, error: "Impossibile salvare l'incasso giornaliero." }; done(); return { ok: true };
 }
 

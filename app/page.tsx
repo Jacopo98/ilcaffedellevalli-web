@@ -7,7 +7,7 @@ import { getPublicMenu } from "@/lib/menu";
 const highlights = [
   { value: "7/7", label: "Aperti ogni giorno" },
   { value: "04:00", label: "Orario di apertura" },
-  { value: "25", label: "Tipi di brioche" },
+  { value: "30", label: "Tipi di brioche" },
 ];
 
 export default async function Home() {
@@ -64,7 +64,7 @@ export default async function Home() {
             </div>
             <div className="grid gap-10 sm:grid-cols-2">
               <div><p className="footer-label"><MapPin size={15} /> Dove siamo</p><p className="mt-4 text-lg">Via Provinciale, 6<br />24030 Paladina (BG)</p><a className="footer-link" href="https://maps.google.com" target="_blank" rel="noreferrer">Apri la mappa <ArrowUpRight size={15} /></a></div>
-              <div><p className="footer-label"><Clock3 size={15} /> Orari</p><p className="mt-4 text-lg">Lun — Ven: 04:00 — 15:00<br />Sab — Dom: 04:00 — 12:00</p></div>
+              <div><p className="footer-label"><Clock3 size={15} /> Orari</p><p className="mt-4 text-lg">Lun — Ven: 04:00 — 15:00<br />Sab — Dom: 04:00 — 13:00</p></div>
             </div>
           </div>
           <div className="mt-20 flex flex-col gap-5 border-t border-white/15 pt-7 text-sm text-white/45 sm:flex-row sm:items-center sm:justify-between">

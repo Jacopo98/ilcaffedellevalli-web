@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { LoginForm } from "@/app/login/login-form";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -16,7 +15,6 @@ export default async function ReservedAreaPage({ searchParams }: { searchParams:
   const invitationError = (await searchParams).auth_error === "link_non_valido";
   return (
     <main className="admin-shell">
-      <Link className="admin-back-link" href="/"><ArrowLeft size={16} /> Torna al sito</Link>
       <div className="login-frame">
         <section className="login-brand-panel">
           <div className="login-beans" aria-hidden="true"><Image src="/coffee-beans.png" alt="" width={1536} height={1024} priority /></div>

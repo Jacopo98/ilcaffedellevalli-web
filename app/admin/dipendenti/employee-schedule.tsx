@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
-import { useMemo, useRef, useState, useTransition } from "react";
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Clock3, Copy, Download, FileSpreadsheet, MessageCircle, Pencil, Plus, Printer, Trash2, Users, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Clock3, Copy, Download, Expand, FileSpreadsheet, MessageCircle, Minimize2, Pencil, Plus, Printer, Trash2, Users, X } from "lucide-react";
 import { clearWeek, createEmployee, createShift, deleteShift, duplicateWeek, updateEmployee, updateShift, type EmployeeActionResult } from "./actions";
 
 type Employee = { id: number; first_name: string; last_name: string; phone: string | null; email: string | null; role_title: string; hire_date: string | null; contract_level: string | null; ral_cents: number | null; contract_start: string | null; contract_end: string | null; weekly_contract_hours: number | null; notes: string | null; color: string; is_active: boolean };
 type EntryType = "work" | "extra" | "rol" | "holiday" | "sick";
 type Shift = { id: number; employee_id: number; entry_type: EntryType; shift_date: string; start_time: string; end_time: string; actual_start_time: string | null; actual_end_time: string | null; break_minutes: number; notes: string | null };
 type ShiftDraft = { id?: number; employeeId: number; entryType: EntryType; date: string; start: string; end: string; actualStart: string; actualEnd: string; breakMinutes: number; notes: string };
-type ShiftCardStyle = CSSProperties & { "--mobile-left": string; "--mobile-width": string; "--mobile-row": number; "--print-top": string; "--print-height": string; "--print-left": string; "--print-width": string };
+type ShiftCardStyle = CSSProperties & { "--mobile-left": string; "--mobile-width": string; "--mobile-row": number; "--print-top": string; "--print-height": string; "--print-left": string; "--print-width": string; "--screen-top": string; "--screen-height": string; "--screen-left": string; "--screen-width": string };
 
 const DAY_NAMES = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 const START_HOUR = 4;
@@ -49,7 +49,7 @@ function arrangeShifts(dayShifts: Shift[]) {
   return arranged;
 }
 
-export function EmployeeSchedule({ employees, shifts, weekStart }: { employees: Employee[]; shifts: Shift[]; weekStart: string }) {
+export function EmployeeSchedule({ employees, shifts, weekStart, openFullscreen = false }: { employees: Employee[]; shifts: Shift[]; weekStart: string; openFullscreen?: boolean }) {
   const router = useRouter();
   const [tab, setTab] = useState<"calendar" | "employees">("calendar");
   const [draft, setDraft] = useState<ShiftDraft | null>(null);
@@ -59,11 +59,21 @@ export function EmployeeSchedule({ employees, shifts, weekStart }: { employees: 
   const [error, setError] = useState("");
   const [weekOperation, setWeekOperation] = useState<"duplicate" | "clear" | null>(null);
   const [sourceWeek, setSourceWeek] = useState(weekStart);
+  const [expanded, setExpanded] = useState(openFullscreen);
   const [pending, startTransition] = useTransition();
   const dragStart = useRef<{ date: string; minute: number } | null>(null);
   const days = useMemo(() => DAY_NAMES.map((name, index) => ({ name, date: addDays(weekStart, index) })), [weekStart]);
   const employeeMap = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const totals = useMemo(() => employees.map((employee) => ({ employee, hours: shifts.filter((shift) => shift.employee_id === employee.id).reduce((sum, shift) => sum + duration(shift), 0) })).filter((entry) => entry.hours > 0 || entry.employee.is_active), [employees, shifts]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setExpanded(false); };
+    window.addEventListener("keydown", onEscape);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onEscape); };
+  }, [expanded]);
 
   function run(action: (data: FormData) => Promise<EmployeeActionResult>, data: FormData, close: () => void) {
     setError("");
@@ -81,7 +91,8 @@ export function EmployeeSchedule({ employees, shifts, weekStart }: { employees: 
   function editShift(shift: Shift) { setDraft({ id: shift.id, employeeId: shift.employee_id, entryType: shift.entry_type, date: shift.shift_date, start: shift.start_time.slice(0, 5), end: shift.end_time.slice(0, 5), actualStart: shift.actual_start_time?.slice(0, 5) ?? "", actualEnd: shift.actual_end_time?.slice(0, 5) ?? "", breakMinutes: shift.break_minutes, notes: shift.notes ?? "" }); }
   function pointerMinute(event: React.PointerEvent<HTMLElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
-    const progress = window.innerWidth <= 850 ? (event.clientX - rect.left) / rect.width : (event.clientY - rect.top) / rect.height;
+    const horizontalTimeline = window.innerWidth <= 850 && !(expanded && window.innerWidth >= 640);
+    const progress = horizontalTimeline ? (event.clientX - rect.left) / rect.width : (event.clientY - rect.top) / rect.height;
     const raw = START_HOUR * 60 + progress * ((END_HOUR - START_HOUR) * 60);
     return Math.round(raw / 15) * 15;
   }
@@ -126,9 +137,10 @@ export function EmployeeSchedule({ employees, shifts, weekStart }: { employees: 
       {error && <div className="staff-alert"><span>{error}</span><button onClick={() => setError("")}><X size={16} /></button></div>}
 
       {tab === "calendar" ? <>
+        <div className={`schedule-focus${expanded ? " is-expanded" : ""}`} role={expanded ? "dialog" : undefined} aria-modal={expanded ? true : undefined} aria-label={expanded ? "Pianificazione turni ampliata" : undefined}>
         <section className="schedule-toolbar">
-          <div className="week-navigation"><Link href={`/admin/dipendenti?week=${addDays(weekStart, -7)}`} aria-label="Settimana precedente"><ChevronLeft /></Link><div><small>Settimana</small><strong>{labelDate(weekStart)} – {labelDate(addDays(weekStart, 6))}</strong></div><Link href={`/admin/dipendenti?week=${addDays(weekStart, 7)}`} aria-label="Settimana successiva"><ChevronRight /></Link></div>
-          <div className="schedule-actions"><button onClick={() => { setSourceWeek(weekStart); setWeekOperation("duplicate"); }}><Copy size={16} /> Duplica</button><button className="schedule-danger" onClick={() => setWeekOperation("clear")}><Trash2 size={16} /> Svuota</button><button onClick={() => window.print()}><Printer size={16} /> Stampa / PDF</button><button onClick={whatsapp}><MessageCircle size={16} /> WhatsApp</button></div>
+          <div className="week-navigation"><Link href={`/admin/dipendenti?week=${addDays(weekStart, -7)}${expanded ? "&focus=1" : ""}`} aria-label="Settimana precedente"><ChevronLeft /></Link><div><small>Settimana</small><strong>{labelDate(weekStart)} – {labelDate(addDays(weekStart, 6))}</strong></div><Link href={`/admin/dipendenti?week=${addDays(weekStart, 7)}${expanded ? "&focus=1" : ""}`} aria-label="Settimana successiva"><ChevronRight /></Link></div>
+          <div className="schedule-actions"><button onClick={() => { setSourceWeek(weekStart); setWeekOperation("duplicate"); }}><Copy size={16} /> Duplica</button><button className="schedule-danger" onClick={() => setWeekOperation("clear")}><Trash2 size={16} /> Svuota</button><button onClick={() => window.print()}><Printer size={16} /> Stampa / PDF</button><button onClick={whatsapp}><MessageCircle size={16} /> WhatsApp</button><button className="schedule-expand" onClick={() => setExpanded(value => !value)} aria-label={expanded ? "Chiudi vista ampliata" : "Apri vista ampliata"}>{expanded ? <Minimize2 size={16} /> : <Expand size={16} />}{expanded ? "Riduci" : "Espandi"}</button></div>
         </section>
         <section className="share-filter"><div><Download size={17} /><span>Includi nell’esportazione:</span></div><div className="share-employees">{employees.filter((employee) => employee.is_active).map((employee) => <label key={employee.id}><input type="checkbox" checked={selected.includes(employee.id)} onChange={() => setSelected((current) => current.includes(employee.id) ? current.filter((id) => id !== employee.id) : [...current, employee.id])} /><i style={{ background: employee.color }} />{employee.first_name}</label>)}</div></section>
         <div className="schedule-layout">
@@ -136,8 +148,9 @@ export function EmployeeSchedule({ employees, shifts, weekStart }: { employees: 
           <section className="week-calendar">{days.map((day) => {
             const arranged = arrangeShifts(shifts.filter((shift) => shift.shift_date === day.date && selected.includes(shift.employee_id)));
             const mobileRows = Math.max(1, ...arranged.map(({ lane }) => lane + 1));
-            return <article className="calendar-day" key={day.date}><header><div><strong>{day.name}</strong><span>{labelDate(day.date)}</span></div><button onClick={() => newShift(day.date)} aria-label={`Aggiungi turno ${day.name}`}><Plus size={17} /></button></header><div className="day-timeline" style={{ height: (END_HOUR - START_HOUR) * HOUR_HEIGHT, "--mobile-rows": mobileRows } as CSSProperties} onPointerDown={(event) => beginDrag(event, day.date)} onPointerUp={(event) => endDrag(event, day.date)}><div className="mobile-time-axis">{Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index).map((hour) => <span style={{ left: `${((hour - START_HOUR) / (END_HOUR - START_HOUR)) * 100}%` }} key={hour}>{String(hour).padStart(2, "0")}</span>)}</div>{Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => <i className="mobile-hour-line" style={{ left: `${(index / (END_HOUR - START_HOUR)) * 100}%` }} key={`mobile-${index}`} />)}{Array.from({ length: END_HOUR - START_HOUR }, (_, index) => <i className="hour-line" style={{ top: index * HOUR_HEIGHT, "--print-top": `${index * 35}px` } as CSSProperties} key={index} />)}{arranged.map(({ shift, lane, laneCount }) => { const employee = employeeMap.get(shift.employee_id); const start = minutes(shift.start_time); const end = minutes(shift.end_time); const top = ((start - START_HOUR * 60) / 60) * HOUR_HEIGHT; const height = Math.max(34, ((end - start) / 60) * HOUR_HEIGHT); const horizontalLeft = `calc(${(lane / laneCount) * 100}% + .25rem)`; const horizontalWidth = `calc(${100 / laneCount}% - .5rem)`; const categoryColor = ENTRY_COLORS[shift.entry_type] || employee?.color; const style: ShiftCardStyle = { top, height, left: horizontalLeft, width: horizontalWidth, borderColor: categoryColor, background: `${categoryColor}18`, "--mobile-left": `${((start - START_HOUR * 60) / ((END_HOUR - START_HOUR) * 60)) * 100}%`, "--mobile-width": `${((end - start) / ((END_HOUR - START_HOUR) * 60)) * 100}%`, "--mobile-row": lane, "--print-top": `${((start - START_HOUR * 60) / 60) * 35}px`, "--print-height": `${Math.max(24, ((end - start) / 60) * 35)}px`, "--print-left": horizontalLeft, "--print-width": horizontalWidth }; return <button className={`shift-card shift-type-${shift.entry_type}${laneCount > 1 ? " shift-card-compact" : ""}`} style={style} key={shift.id} title={`${employee?.first_name ?? "Dipendente"} · ${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => editShift(shift)}>{shift.entry_type !== "work" && <em>{ENTRY_LABELS[shift.entry_type]}</em>}<strong>{employee?.first_name}</strong><span>{shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)}</span></button>; })}</div></article>;
+            return <article className="calendar-day" key={day.date}><header><div><strong>{day.name}</strong><span>{labelDate(day.date)}</span></div><button onClick={() => newShift(day.date)} aria-label={`Aggiungi turno ${day.name}`}><Plus size={17} /></button></header><div className="day-timeline" style={{ height: (END_HOUR - START_HOUR) * HOUR_HEIGHT, "--mobile-rows": mobileRows } as CSSProperties} onPointerDown={(event) => beginDrag(event, day.date)} onPointerUp={(event) => endDrag(event, day.date)}><div className="mobile-time-axis">{Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index).map((hour) => <span style={{ left: `${((hour - START_HOUR) / (END_HOUR - START_HOUR)) * 100}%` }} key={hour}>{String(hour).padStart(2, "0")}</span>)}</div>{Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => <i className="mobile-hour-line" style={{ left: `${(index / (END_HOUR - START_HOUR)) * 100}%` }} key={`mobile-${index}`} />)}{Array.from({ length: END_HOUR - START_HOUR }, (_, index) => <i className="hour-line" style={{ top: index * HOUR_HEIGHT, "--print-top": `${index * 35}px` } as CSSProperties} key={index} />)}{arranged.map(({ shift, lane, laneCount }) => { const employee = employeeMap.get(shift.employee_id); const start = minutes(shift.start_time); const end = minutes(shift.end_time); const top = ((start - START_HOUR * 60) / 60) * HOUR_HEIGHT; const height = Math.max(34, ((end - start) / 60) * HOUR_HEIGHT); const horizontalLeft = `calc(${(lane / laneCount) * 100}% + .25rem)`; const horizontalWidth = `calc(${100 / laneCount}% - .5rem)`; const categoryColor = ENTRY_COLORS[shift.entry_type] || employee?.color; const style: ShiftCardStyle = { top, height, left: horizontalLeft, width: horizontalWidth, borderColor: categoryColor, background: `${categoryColor}18`, "--mobile-left": `${((start - START_HOUR * 60) / ((END_HOUR - START_HOUR) * 60)) * 100}%`, "--mobile-width": `${((end - start) / ((END_HOUR - START_HOUR) * 60)) * 100}%`, "--mobile-row": lane, "--print-top": `${((start - START_HOUR * 60) / 60) * 35}px`, "--print-height": `${Math.max(24, ((end - start) / 60) * 35)}px`, "--print-left": horizontalLeft, "--print-width": horizontalWidth, "--screen-top": `${top}px`, "--screen-height": `${height}px`, "--screen-left": horizontalLeft, "--screen-width": horizontalWidth }; return <button className={`shift-card shift-type-${shift.entry_type}${laneCount > 1 ? " shift-card-compact" : ""}`} style={style} key={shift.id} title={`${employee?.first_name ?? "Dipendente"} · ${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => editShift(shift)}>{shift.entry_type !== "work" && <em>{ENTRY_LABELS[shift.entry_type]}</em>}<strong>{employee?.first_name}</strong><span>{shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)}</span></button>; })}</div></article>;
           })}</section>
+        </div>
         </div>
         <section className="hours-recap"><div className="recap-heading"><p className="admin-kicker">Riepilogo</p><h2>Ore della settimana</h2></div><div className="recap-grid">{totals.filter(({ employee }) => selected.includes(employee.id)).map(({ employee, hours }) => <article key={employee.id}><i style={{ background: employee.color }} /><div><strong>{employee.first_name} {employee.last_name}</strong><small>{employee.weekly_contract_hours ? `Contratto ${hoursLabel(Number(employee.weekly_contract_hours))}` : "Ore contrattuali non indicate"}</small></div><span>{hoursLabel(hours)}</span></article>)}</div></section>
         <section className="payroll-export"><span className="payroll-icon"><FileSpreadsheet /></span><div><p className="admin-kicker">Studio paghe</p><h2>Recap mensile</h2><p>Genera il riepilogo del mese per i dipendenti selezionati, pronto in PDF o CSV.</p></div><label><span>Mese</span><input type="month" value={reportMonth} onChange={(event) => setReportMonth(event.target.value)} /></label><Link className="admin-action admin-action-primary" href={`/admin/dipendenti/report?month=${reportMonth}&employees=${selected.join(",")}`} target="_blank"><CalendarDays size={16} /> Apri report</Link></section>

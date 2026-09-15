@@ -175,6 +175,20 @@ button { cursor: pointer; }
 .admin-dashboard-card p { max-width: 22rem; margin-top: .55rem; color: rgba(28,28,26,.5); font-size: .8rem; line-height: 1.6; }
 .admin-card-link { display: flex; align-items: center; gap: .45rem; margin-top: .9rem; color: var(--orange); font-size: .7rem; font-weight: 800; }
 .admin-dashboard-card-disabled { opacity: .48; }
+.admin-quick-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .9rem; margin-top: 1.1rem; }
+.admin-quick-action { display: flex; min-width: 0; align-items: center; gap: 1rem; border: 1px solid rgba(232,101,10,.2); border-radius: 1.2rem; padding: 1.2rem 1.35rem; background: #fff9f4; box-shadow: 0 .55rem 1.5rem rgba(28,28,26,.035); }
+.admin-quick-action:hover { border-color: var(--orange); transform: translateY(-2px); }
+.admin-quick-action-closing { border-color: rgba(36,138,115,.2); background: #f4faf7; }
+.admin-quick-action-closing:hover { border-color: #248a73; }
+.admin-quick-icon { display: grid; flex: 0 0 3.3rem; height: 3.3rem; place-items: center; border-radius: 1rem; background: var(--orange); color: white; }
+.admin-quick-action-closing .admin-quick-icon { background: #248a73; }
+.admin-quick-action > span:nth-child(2) { display: grid; min-width: 0; gap: .12rem; }
+.admin-quick-action small { color: var(--orange); font-size: .58rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.admin-quick-action-closing small { color: #248a73; }
+.admin-quick-action strong { font-family: var(--font-mina),sans-serif; font-size: clamp(1rem,2vw,1.35rem); }
+.admin-quick-action em { color: rgba(28,28,26,.48); font-size: .68rem; font-style: normal; }
+.admin-quick-arrow { flex: 0 0 auto; margin-left: auto; color: var(--orange); }
+.admin-quick-action-closing .admin-quick-arrow { color: #248a73; }
 .admin-inline-link { display: inline-flex; align-items: center; gap: .4rem; color: rgba(28,28,26,.5); font-size: .78rem; font-weight: 700; }
 .admin-inline-link:hover { color: var(--orange); }
 .admin-panel { border: 1px solid rgba(28,28,26,.12); border-radius: 1.25rem; padding: clamp(1rem,3vw,1.75rem); background: white; box-shadow: 0 .75rem 2rem rgba(28,28,26,.035); }
@@ -220,6 +234,12 @@ button { cursor: pointer; }
 .schedule-actions button { display: flex; align-items: center; gap: .45rem; border: 1px solid rgba(28,28,26,.11); border-radius: 999px; padding: .7rem .9rem; color: rgba(28,28,26,.58); font-size: .68rem; font-weight: 800; }
 .schedule-actions button:hover { border-color: var(--orange); color: var(--orange); }
 .schedule-actions button.schedule-danger:hover { border-color: #c54135; color: #c54135; }
+.schedule-actions button.schedule-expand { border-color: rgba(232,101,10,.35); color: var(--orange); }
+.schedule-focus.is-expanded { position: fixed; inset: 0; z-index: 80; overflow: auto; padding: clamp(.75rem,2vw,2rem); background: #f5f2ed; }
+.schedule-focus.is-expanded .schedule-toolbar { position: sticky; top: 0; z-index: 10; flex-wrap: wrap; margin-top: 0; box-shadow: 0 .4rem 1.5rem rgba(28,28,26,.08); }
+.schedule-focus.is-expanded .schedule-actions { flex-wrap: wrap; }
+.schedule-focus.is-expanded .schedule-layout { margin-bottom: 1rem; }
+.schedule-focus.is-expanded .week-calendar { grid-template-columns: repeat(7,minmax(0,1fr)); }
 .share-filter { align-items: flex-start; justify-content: flex-start; border-inline: 1px solid rgba(28,28,26,.1); padding: .8rem 1rem; background: #faf8f5; }
 .share-filter > div:first-child { display: flex; flex: 0 0 auto; align-items: center; gap: .45rem; padding-top: .35rem; color: rgba(28,28,26,.43); font-size: .66rem; font-weight: 800; }
 .share-employees { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -417,9 +437,23 @@ button { cursor: pointer; }
   .employee-grid { grid-template-columns: 1fr; }
   .profile-layout { grid-template-columns: 1fr; }
 }
+@media (min-width: 640px) and (max-width: 850px) {
+  .schedule-focus.is-expanded .schedule-layout { grid-template-columns: 3.25rem minmax(0,1fr); }
+  .schedule-focus.is-expanded .schedule-hours { display: block; margin-top: 4.55rem; }
+  .schedule-focus.is-expanded .calendar-day { border-right: 1px solid rgba(28,28,26,.08); border-bottom: 0; }
+  .schedule-focus.is-expanded .calendar-day > header { height: 4.55rem; }
+  .schedule-focus.is-expanded .day-timeline { height: 648px !important; min-height: 0; touch-action: pan-x; background: repeating-linear-gradient(to bottom,transparent 0,transparent 53px,rgba(28,28,26,.07) 54px); }
+  .schedule-focus.is-expanded .mobile-time-axis,.schedule-focus.is-expanded .mobile-hour-line { display: none; }
+  .schedule-focus.is-expanded .hour-line { display: block; }
+  .schedule-focus.is-expanded .shift-card { top: var(--screen-top) !important; left: var(--screen-left) !important; width: var(--screen-width) !important; height: var(--screen-height) !important; min-height: 2rem; padding: .35rem .4rem; }
+  .schedule-focus.is-expanded .shift-card-compact { padding: .35rem .2rem; }
+  .schedule-focus.is-expanded .shift-card-compact strong { order: -1; width: auto; max-height: 100%; writing-mode: vertical-rl; text-overflow: clip; }
+  .schedule-focus.is-expanded .shift-card-compact span { display: none; }
+}
 .revenue-calculated-input { cursor: default; border-color: rgba(36,138,115,.2) !important; background: rgba(36,138,115,.08) !important; color: #176956 !important; font-weight: 800; }
 .revenue-field-help { color: rgba(28,28,26,.42); font-size: .62rem; line-height: 1.5; }
 @media (max-width: 639px) {
+  .admin-quick-actions { grid-template-columns: 1fr; }
   .admin-shell { align-items: start; padding: 4.5rem .75rem 1rem; overflow: auto; }
   .login-frame { border-radius: 1.35rem; }
   .login-brand-panel { min-height: 11rem; }
@@ -771,9 +805,57 @@ button { cursor: pointer; }
   .fixed-cost-detail-copy > strong { white-space: normal; }
 }
 
+.revenue-service-heading { display: grid; gap: .2rem; margin-top: .25rem; border-top: 1px solid rgba(28,28,26,.09); padding-top: 1rem; }
+.compact-ledger small.revenue-service-row { color: #248a73; font-weight: 800; }
+.revenue-service-heading strong { font-family: var(--font-mina),sans-serif; font-size: 1rem; }
+.revenue-service-heading small { color: rgba(28,28,26,.45); font-size: .62rem; }
+.service-metrics-panel { margin-top: 1rem; }
+.service-metrics-period { margin-top: .3rem; color: rgba(28,28,26,.45); font-size: .66rem; }
+.service-metrics-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; margin-top: 1.2rem; }
+.service-metrics-summary > div { display: grid; gap: .18rem; border-radius: 1rem; padding: .95rem 1.1rem; }
+.service-summary-brioches { background: #fff1e7; }
+.service-summary-covers { background: #eaf6f1; }
+.service-metrics-summary span { color: rgba(28,28,26,.6); font-size: .63rem; font-weight: 800; }
+.service-metrics-summary strong { font-family: var(--font-mina),sans-serif; font-size: clamp(1.3rem,2.4vw,1.8rem); line-height: 1.1; }
+.service-metrics-summary small { color: rgba(28,28,26,.45); font-size: .57rem; }
+.service-period-grid { display: grid; gap: 1rem; margin-top: 1.35rem; }
+.service-period-series { min-width: 0; border: 1px solid rgba(28,28,26,.08); border-radius: 1rem; padding: 1rem; background: #faf9f7; }
+.service-period-series h3 { display: flex; align-items: center; gap: .5rem; font-family: var(--font-mina),sans-serif; font-size: 1.05rem; }
+.service-period-series h3 i { width: .65rem; height: .65rem; border-radius: .2rem; background: var(--orange); }
+.service-period-series.covers h3 i { background: #248a73; }
+.service-period-scroll { overflow-x: auto; margin-top: 1rem; padding-top: .25rem; }
+.service-period-chart { display: grid; width: max-content; min-width: 100%; gap: .45rem; }
+.service-period-chart.single { width: min(100%,18rem); }
+.service-period-bin { display: grid; min-width: 0; grid-template-rows: 10rem 1.1rem .9rem; gap: .2rem; text-align: center; }
+.service-period-bin > small { overflow: hidden; color: rgba(28,28,26,.5); font-size: .54rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.service-period-bin > em { color: #a84b0b; font-size: .46rem; font-style: normal; font-weight: 900; text-transform: uppercase; }
+.service-period-bar { position: relative; border-bottom: 1px solid rgba(28,28,26,.1); }
+.service-period-bar b { position: absolute; right: .35rem; bottom: 0; left: .35rem; border-radius: .35rem .35rem 0 0; background: var(--orange); }
+.service-period-series.covers .service-period-bar b { background: #248a73; }
+.service-period-bar span { position: absolute; right: 0; left: 0; color: var(--ink); font-size: .5rem; font-weight: 800; }
+.service-period-bar span.missing { bottom: .3rem; color: rgba(28,28,26,.25); }
+.service-period-bin.lunch-closed .service-period-bar { background: repeating-linear-gradient(135deg,#fff4e9 0,#fff4e9 4px,#fff 4px,#fff 8px); }
+.service-period-bin.lunch-closed > small { color: #a84b0b; }
+.service-metrics-note,.service-metrics-empty { margin-top: .75rem; color: rgba(28,28,26,.43); font-size: .62rem; line-height: 1.5; }
+@media (max-width: 639px) { .service-metrics-summary { grid-template-columns: 1fr 1fr; } .service-metrics-summary > div { padding: .8rem; } }
+
+/* Navigazione economica: tutte le sezioni visibili senza scorrimento su smartphone. */
+@media (max-width: 639px) {
+  .expenses-topbar { display: grid; grid-template-columns: minmax(0,1fr); gap: .85rem; }
+  .expense-tabs { display: grid; width: 100%; max-width: none; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .35rem; overflow: visible; border-radius: 1rem; padding: .4rem; }
+  .expense-tabs button { min-width: 0; justify-content: center; min-height: 2.55rem; border-radius: .7rem; padding: .55rem .35rem; font-size: .65rem; white-space: nowrap; }
+  .expense-tabs button:last-child { grid-column: 1 / -1; }
+}
+
 @media print {
   @page { size: A4 landscape; margin: 10mm; }
-  body { background: white !important; }
+  body { overflow: visible !important; background: white !important; }
+  .schedule-focus.is-expanded { position: static; overflow: visible; padding: 0; background: transparent; }
+  .schedule-focus.is-expanded .schedule-toolbar { position: static; box-shadow: none; }
+  .schedule-focus.is-expanded .schedule-layout { margin-bottom: 0; }
+  .schedule-focus.is-expanded .calendar-day > header { height: 3.5rem; }
+  .schedule-focus.is-expanded .schedule-hours { margin-top: 3.5rem; }
+  .schedule-focus.is-expanded .day-timeline { height: 420px !important; background: transparent; }
   .admin-header,.staff-topbar,.staff-heading > button,.schedule-actions,.share-filter,.admin-back-link,.admin-modal-backdrop,.payroll-export,.report-actions { display: none !important; }
   .staff-page { width: 100%; padding: 0; }
   .staff-heading { display: block; margin: 0 0 8mm; }
@@ -792,6 +874,7 @@ button { cursor: pointer; }
   .hour-line { display: block !important; top: var(--print-top) !important; }
   .day-timeline { height: 420px !important; background: transparent !important; }
   .shift-card { position: absolute; top: var(--print-top) !important; right: auto !important; left: var(--print-left) !important; width: var(--print-width) !important; height: var(--print-height) !important; min-width: 0 !important; margin: 0 !important; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .schedule-focus.is-expanded .shift-card { top: var(--print-top) !important; left: var(--print-left) !important; width: var(--print-width) !important; height: var(--print-height) !important; }
   .shift-card-compact { padding: .2rem !important; }
   .shift-card-compact strong { order: -1; width: auto; max-height: 100%; overflow: hidden; writing-mode: vertical-rl; text-orientation: mixed; text-overflow: clip; }
   .shift-card-compact span { display: none; }
@@ -819,4 +902,18 @@ button { cursor: pointer; }
 .fixed-plan-grid article.unvalued .plan-month-value strong {
   color: var(--orange);
   font-size: .65rem;
+}
+
+.fixed-plan-grid article.excluded {
+  background: #f5f3ef;
+  border-style: dashed;
+}
+.fixed-plan-grid article.excluded > div:first-child > span,
+.fixed-plan-grid article.excluded .plan-month-value strong {
+  color: rgba(28,28,26,.5);
+}
+.fixed-plan-grid article.excluded .plan-month-value strong {
+  max-width: 10rem;
+  font-size: .65rem;
+  line-height: 1.35;
 }
