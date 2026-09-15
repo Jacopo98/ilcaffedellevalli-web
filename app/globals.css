@@ -917,3 +917,29 @@ button { cursor: pointer; }
   font-size: .65rem;
   line-height: 1.35;
 }
+
+/* Solo smartphone: menu compatto delle sezioni economiche. */
+.expense-tabs button:focus-visible,.expense-mobile-sections button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.expense-mobile-sections { display: none; }
+@media (max-width: 639px) {
+  .expense-tabs { display: none; }
+  .expense-mobile-sections { display: grid; width: 100%; min-width: 0; gap: .45rem; }
+  .expense-mobile-section-toggle { display: flex; width: 100%; min-height: 3.3rem; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid rgba(28,28,26,.12); border-radius: .95rem; padding: .7rem .9rem; background: white; text-align: left; box-shadow: 0 .35rem 1.2rem rgba(28,28,26,.035); }
+  .expense-mobile-section-toggle > span { display: grid; gap: .2rem; min-width: 0; }
+  .expense-mobile-section-toggle small { color: rgba(28,28,26,.5); font-size: .55rem; font-weight: 700; }
+  .expense-mobile-section-toggle strong { font-family: var(--font-mina),sans-serif; font-size: .9rem; }
+  .expense-mobile-section-toggle svg { flex: 0 0 auto; color: var(--orange); transition: transform .2s; }
+  .expense-mobile-section-toggle svg.open { transform: rotate(180deg); }
+  .expense-mobile-section-list { display: grid; gap: .2rem; border: 1px solid rgba(28,28,26,.1); border-radius: .95rem; padding: .35rem; background: white; box-shadow: 0 .7rem 1.6rem rgba(28,28,26,.06); }
+  .expense-mobile-section-list button { display: flex; min-height: 2.55rem; align-items: center; gap: .7rem; border-radius: .65rem; padding: .55rem .7rem; text-align: left; font-size: .72rem; font-weight: 750; }
+  .expense-mobile-section-list button svg { color: var(--orange); }
+  .expense-mobile-section-list button.active { background: #fff1e7; color: var(--ink); }
+  .expense-mobile-section-list button:hover:not(.active) { background: #f5f2ed; }
+  .expense-mobile-current { margin-left: auto; color: var(--orange); font-size: .54rem; text-transform: uppercase; }
+
+  /* Safari iOS attribuisce agli input calendario una larghezza intrinseca elevata. */
+  input:is([type="date"],[type="month"],[type="week"],[type="datetime-local"]) { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; font-size: 16px; }
+  input:is([type="date"],[type="month"],[type="week"],[type="datetime-local"])::-webkit-date-and-time-value { min-width: 0; text-align: left; }
+  input:is([type="date"],[type="month"],[type="week"],[type="datetime-local"])::-webkit-calendar-picker-indicator { width: 1.1rem; height: 1.1rem; margin: 0; }
+  .admin-field,.fixed-cost-month-picker,.staff-month-picker,.period-controls label,.expenses-heading-actions label { min-width: 0; max-width: 100%; }
+}
