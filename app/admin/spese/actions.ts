@@ -11,6 +11,7 @@ const categorySchema = z.object({ name: z.string().trim().min(1).max(80), costTy
 const expenseSchema = z.object({
   categoryId: idSchema, description: z.string().trim().min(1).max(160), supplier: optional(120), invoiceNumber: optional(80), expenseDate: z.iso.date(),
   amount: z.coerce.number().min(0).max(10000000), vatRate: z.coerce.number().min(0).max(100),
+  accountingLabel: z.enum(["F", "X"]),
   paymentMethod: z.union([z.literal(""), z.enum(["bank_transfer", "direct_debit", "card", "cash", "other"])]).transform((value) => value || null),
   notes: optional(1000),
 });
@@ -19,21 +20,21 @@ const annualMultiplier = (frequency: "monthly" | "bimonthly" | "quarterly" | "ye
 function done() { revalidatePath("/admin/spese"); revalidatePath("/admin"); }
 
 export async function createExpense(formData: FormData): Promise<ExpenseActionResult> {
-  const parsed = expenseSchema.safeParse({ categoryId: formData.get("category_id"), description: formData.get("description"), supplier: formData.get("supplier") ?? "", invoiceNumber: formData.get("invoice_number") ?? "", expenseDate: formData.get("expense_date"), amount: formData.get("amount"), vatRate: formData.get("vat_rate") ?? 0, paymentMethod: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
+  const parsed = expenseSchema.safeParse({ categoryId: formData.get("category_id"), description: formData.get("description"), supplier: formData.get("supplier") ?? "", invoiceNumber: formData.get("invoice_number") ?? "", expenseDate: formData.get("expense_date"), amount: formData.get("amount"), vatRate: formData.get("vat_rate") ?? 0, accountingLabel: formData.get("accounting_label") ?? "F", paymentMethod: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
   if (!parsed.success) return { ok: false, error: "Controlla i dati della spesa." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
   const isInvoice=formData.get("is_invoice")==="on",netCents=cents(value.amount),vatCents=isInvoice?Math.round(netCents*value.vatRate/100):0;
-  const { error } = await supabase.from("expenses").insert({ category_id: value.categoryId, description: value.description, supplier: value.supplier, invoice_number: isInvoice?value.invoiceNumber:null, is_invoice:isInvoice, expense_date: value.expenseDate, due_date:null, paid_date:null, amount_net_cents:netCents, vat_cents:vatCents, payment_status:"due", payment_method:value.paymentMethod, recurrence:"none", is_estimate:false, notes:value.notes });
+  const { error } = await supabase.from("expenses").insert({ category_id: value.categoryId, description: value.description, supplier: value.supplier, invoice_number: isInvoice?value.invoiceNumber:null, is_invoice:isInvoice, accounting_label:value.accountingLabel, expense_date: value.expenseDate, due_date:null, paid_date:null, amount_net_cents:netCents, vat_cents:vatCents, payment_status:"due", payment_method:value.paymentMethod, recurrence:"none", is_estimate:false, notes:value.notes });
   if (error) return { ok: false, error: "Impossibile creare la spesa." }; done(); return { ok: true };
 }
 
 export async function updateExpense(formData: FormData): Promise<ExpenseActionResult> {
   const id = idSchema.safeParse(formData.get("id"));
-  const parsed = expenseSchema.safeParse({ categoryId: formData.get("category_id"), description: formData.get("description"), supplier: formData.get("supplier") ?? "", invoiceNumber: formData.get("invoice_number") ?? "", expenseDate: formData.get("expense_date"), amount: formData.get("amount"), vatRate: formData.get("vat_rate") ?? 0, paymentMethod: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
+  const parsed = expenseSchema.safeParse({ categoryId: formData.get("category_id"), description: formData.get("description"), supplier: formData.get("supplier") ?? "", invoiceNumber: formData.get("invoice_number") ?? "", expenseDate: formData.get("expense_date"), amount: formData.get("amount"), vatRate: formData.get("vat_rate") ?? 0, accountingLabel: formData.get("accounting_label") ?? "F", paymentMethod: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
   if (!id.success || !parsed.success) return { ok: false, error: "Controlla i dati della spesa." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
   const isInvoice=formData.get("is_invoice")==="on",netCents=cents(value.amount),vatCents=isInvoice?Math.round(netCents*value.vatRate/100):0;
-  const { error } = await supabase.from("expenses").update({ category_id:value.categoryId,description:value.description,supplier:value.supplier,invoice_number:isInvoice?value.invoiceNumber:null,is_invoice:isInvoice,expense_date:value.expenseDate,due_date:null,paid_date:null,amount_net_cents:netCents,vat_cents:vatCents,payment_status:"due",payment_method:value.paymentMethod,recurrence:"none",is_estimate:false,notes:value.notes }).eq("id", id.data);
+  const { error } = await supabase.from("expenses").update({ category_id:value.categoryId,description:value.description,supplier:value.supplier,invoice_number:isInvoice?value.invoiceNumber:null,is_invoice:isInvoice,accounting_label:value.accountingLabel,expense_date:value.expenseDate,due_date:null,paid_date:null,amount_net_cents:netCents,vat_cents:vatCents,payment_status:"due",payment_method:value.paymentMethod,recurrence:"none",is_estimate:false,notes:value.notes }).eq("id", id.data);
   if (error) return { ok: false, error: "Impossibile aggiornare la spesa." }; done(); return { ok: true };
 }
 
@@ -57,17 +58,29 @@ export async function updateExpenseCategory(formData: FormData): Promise<Expense
 
 const revenueMoney = z.string().trim().min(1).transform((value) => Number(value.replace(",", "."))).pipe(z.number().finite().min(0).max(1000000));
 const revenueSchema = z.object({
-  date: z.iso.date(), dailyCount: revenueMoney, total: revenueMoney, pos: revenueMoney,
+  date: z.iso.date(), drawerCount: revenueMoney, total: revenueMoney, pos: revenueMoney, issuedInvoices: revenueMoney,
   briochesCount: z.string().trim().min(1, "Inserisci il numero di brioches, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
   lunchCoversCount: z.string().trim().min(1, "Inserisci il numero di coperti, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
   notes: optional(1000),
 }).refine((value) => value.pos <= value.total, { message: "Il POS non può superare la chiusura totale.", path: ["pos"] });
 
 export async function saveDailyRevenue(formData: FormData): Promise<ExpenseActionResult> {
-  const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), dailyCount: formData.get("daily_count"), total: formData.get("total"), pos: formData.get("pos"), briochesCount: formData.get("brioches_count") ?? "", lunchCoversCount: formData.get("lunch_covers_count") ?? "", notes: formData.get("notes") ?? "" });
+  const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), drawerCount: formData.get("drawer_count"), total: formData.get("total"), pos: formData.get("pos"), issuedInvoices: formData.get("issued_invoices") ?? "0", briochesCount: formData.get("brioches_count") ?? "", lunchCoversCount: formData.get("lunch_covers_count") ?? "", notes: formData.get("notes") ?? "" });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Controlla i dati dell'incasso." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
-  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, cash_cents: cents(value.total - value.pos), pos_cents: cents(value.pos), other_cents: cents(value.dailyCount), refunds_cents: 0, receipt_count: null, brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
+  const expenseCategories = formData.getAll("cash_expense_category");
+  const expenseAmounts = formData.getAll("cash_expense_amount");
+  if (expenseCategories.length !== expenseAmounts.length) return { ok: false, error: "Controlla le spese inserite nella chiusura." };
+  const cashExpenses: { category: "personale" | "materie_prime" | "altro"; amount_cents: number }[] = [];
+  for (let index = 0; index < expenseAmounts.length; index += 1) {
+    const rawAmount = String(expenseAmounts[index] ?? "").trim();
+    if (!rawAmount) continue;
+    const category = z.enum(["personale", "materie_prime", "altro"]).safeParse(expenseCategories[index]);
+    const amount = revenueMoney.safeParse(rawAmount);
+    if (!category.success || !amount.success) return { ok: false, error: "Controlla categoria e importo delle spese inserite." };
+    cashExpenses.push({ category: category.data, amount_cents: cents(amount.data) });
+  }
+  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, cash_cents: cents(value.total - value.pos), pos_cents: cents(value.pos), other_cents: cents(value.drawerCount), refunds_cents: 0, receipt_count: null, issued_invoices_cents: cents(value.issuedInvoices), cash_expenses: cashExpenses, brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
   if (error) return { ok: false, error: "Impossibile salvare l'incasso giornaliero." }; done(); return { ok: true };
 }
 
@@ -84,11 +97,11 @@ const planSchema = z.object({
   name: z.string().trim().min(1).max(120), categoryId: z.union([z.literal(""), idSchema]).transform((value) => value === "" ? null : value),
   supplier: optional(120), annualAmount: z.union([z.literal(""), z.coerce.number().min(0).max(10000000)]).transform((value) => value === "" ? null : value),
   start: z.iso.date(), end: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null), frequency: z.enum(["monthly","bimonthly","quarterly","yearly","custom"]),
-  day: z.coerce.number().int().min(1).max(28), method: z.union([z.literal(""), z.enum(["bank_transfer","direct_debit","card","cash","other"])]).transform((value) => value || null), notes: optional(1000),
+  day: z.coerce.number().int().min(1).max(28), accountingLabel: z.enum(["F","X"]), method: z.union([z.literal(""), z.enum(["bank_transfer","direct_debit","card","cash","other"])]).transform((value) => value || null), notes: optional(1000),
 }).refine((value) => value.end === null || value.end >= value.start, { message: "La data finale non può precedere quella iniziale.", path: ["end"] });
 
 function planValues(formData: FormData) {
-  const parsed = planSchema.safeParse({ name: formData.get("name"), categoryId: formData.get("category_id") ?? "", supplier: formData.get("supplier") ?? "", annualAmount: formData.get("annual_amount") ?? "", start: formData.get("competence_start"), end: formData.get("competence_end"), frequency: formData.get("payment_frequency"), day: formData.get("payment_day"), method: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
+  const parsed = planSchema.safeParse({ name: formData.get("name"), categoryId: formData.get("category_id") ?? "", supplier: formData.get("supplier") ?? "", annualAmount: formData.get("annual_amount") ?? "", start: formData.get("competence_start"), end: formData.get("competence_end"), frequency: formData.get("payment_frequency"), day: formData.get("payment_day"), accountingLabel: formData.get("accounting_label") ?? "F", method: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
   if (!parsed.success) return parsed;
   const months = formData.getAll("payment_months").map(Number).filter((month) => month >= 1 && month <= 12);
   return { ...parsed, data: { ...parsed.data, months } };
@@ -100,7 +113,7 @@ export async function createRecurringPlan(formData: FormData): Promise<ExpenseAc
   const { data: closedPeriod } = await supabase.from("financial_period_closures").select("id").eq("period_type","month").eq("period_start",`${v.start.slice(0,7)}-01`).maybeSingle();
   if (closedPeriod) return { ok:false,error:"Il mese selezionato è chiuso. Riaprilo prima di aggiungere un costo." };
   const periodAmountCents = v.annualAmount === null ? null : cents(v.annualAmount); const annualCents = periodAmountCents === null ? null : periodAmountCents * annualMultiplier(v.frequency);
-  const { data: plan, error } = await supabase.from("recurring_cost_plans").insert({ category_id: v.categoryId, name: v.name, supplier: v.supplier, annual_amount_cents: annualCents, competence_start: v.start, competence_end: v.end, payment_frequency: v.frequency, payment_months: v.months, payment_day: v.day, payment_method: v.method, is_estimate: formData.get("is_estimate") === "on", is_active: true, notes: v.notes }).select("id").single();
+  const { data: plan, error } = await supabase.from("recurring_cost_plans").insert({ category_id: v.categoryId, name: v.name, supplier: v.supplier, annual_amount_cents: annualCents, accounting_label:v.accountingLabel, competence_start: v.start, competence_end: v.end, payment_frequency: v.frequency, payment_months: v.months, payment_day: v.day, payment_method: v.method, is_estimate: formData.get("is_estimate") === "on", is_active: true, notes: v.notes }).select("id").single();
   if (error || !plan) return { ok: false, error: "Impossibile creare il costo fisso." };
   const start = new Date(`${v.start.slice(0, 7)}-01T12:00:00Z`); const end = new Date(`${(v.end ?? "9999-12-31").slice(0, 7)}-01T12:00:00Z`); const rows = []; let index = 0;
   for (const cursor = new Date(start); cursor <= end && index < 120; cursor.setUTCMonth(cursor.getUTCMonth() + 1), index++) { const key = cursor.toISOString().slice(0, 10); const monthNumber = cursor.getUTCMonth() + 1; const isPayment = v.months.includes(monthNumber) && annualCents !== null; rows.push({ plan_id: plan.id, competence_month: key, competence_amount_cents: annualCents === null ? null : Math.floor(annualCents / 12) + (index < annualCents % 12 ? 1 : 0), due_date: isPayment ? `${key.slice(0,8)}${String(v.day).padStart(2,"0")}` : null, cash_amount_cents: isPayment ? periodAmountCents : null }); }
@@ -118,7 +131,7 @@ export async function updateRecurringPlan(formData: FormData): Promise<ExpenseAc
   const { data: closedPeriods } = await supabase.from("financial_period_closures").select("period_start").eq("period_type","month");
   const closedMonths = new Set((closedPeriods ?? []).map((period) => period.period_start));
   if (closedMonths.has(`${v.start.slice(0,7)}-01`)) return {ok:false,error:"Il mese selezionato è chiuso. Riaprilo prima di modificare il costo."};
-  const common = { category_id:v.categoryId,name:v.name,supplier:v.supplier,annual_amount_cents:normalizedAnnualCents,payment_frequency:v.frequency,payment_months:v.months,payment_day:v.day,payment_method:v.method,is_estimate:formData.get("is_estimate")==="on",notes:v.notes };
+  const common = { category_id:v.categoryId,name:v.name,supplier:v.supplier,annual_amount_cents:normalizedAnnualCents,accounting_label:v.accountingLabel,payment_frequency:v.frequency,payment_months:v.months,payment_day:v.day,payment_method:v.method,is_estimate:formData.get("is_estimate")==="on",notes:v.notes };
   if (v.start <= current.competence_start) {
     const { error } = await supabase.from("recurring_cost_plans").update({...common,competence_start:v.start,competence_end:v.end,is_active:formData.get("is_active")==="on"}).eq("id",id.data);
     if(error)return{ok:false,error:"Impossibile aggiornare il costo fisso."};
