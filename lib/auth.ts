@@ -9,6 +9,7 @@ export type CurrentProfile = {
   email: string;
   displayName: string | null;
   role: AppRole;
+  employeeId: number | null;
 };
 
 export async function getCurrentProfile(): Promise<CurrentProfile | null> {
@@ -19,7 +20,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, email, display_name, role")
+    .select("id, email, display_name, role, employee_id")
     .eq("id", data.user.id)
     .single();
 
@@ -30,6 +31,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     email: profile.email,
     displayName: profile.display_name,
     role: profile.role as AppRole,
+    employeeId: profile.employee_id,
   };
 }
 

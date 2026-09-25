@@ -4,9 +4,9 @@ import { requireAdmin } from "@/lib/auth";
 import { ReportActions } from "./report-actions";
 
 type Employee = { id: number; first_name: string; last_name: string; weekly_contract_hours: number | null; role_title: string };
-type EntryType = "work" | "rol" | "holiday" | "sick";
+type EntryType = "work" | "extra" | "rol" | "holiday" | "sick";
 type Shift = { id: number; employee_id: number; entry_type: EntryType; shift_date: string; start_time: string; end_time: string; actual_start_time: string | null; actual_end_time: string | null; break_minutes: number; notes: string | null };
-const ENTRY_LABELS: Record<EntryType, string> = { work: "Lavoro", rol: "ROL", holiday: "Ferie", sick: "Malattia" };
+const ENTRY_LABELS: Record<EntryType, string> = { work: "Lavoro", extra: "Extra", rol: "ROL", holiday: "Ferie", sick: "Malattia" };
 
 function validMonth(value?: string) { return value && /^20\d{2}-(0[1-9]|1[0-2])$/.test(value) ? value : new Date().toISOString().slice(0, 7); }
 function monthRange(month: string) { const [year, value] = month.split("-").map(Number); const end = new Date(Date.UTC(year, value, 0)); return { start: `${month}-01`, end: end.toISOString().slice(0, 10) }; }
@@ -31,7 +31,7 @@ export default async function PayrollReportPage({ searchParams }: { searchParams
   const employeeIds = employees.map((employee) => employee.id);
   let shifts: Shift[] = [];
   if (employeeIds.length) {
-    const result = await context.supabase.from("work_shifts").select("id, employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes").in("employee_id", employeeIds).gte("shift_date", range.start).lte("shift_date", range.end).order("shift_date").order("start_time");
+    const result = await context.supabase.from("work_shifts").select("id, employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes").eq("approval_status","approved").in("employee_id", employeeIds).gte("shift_date", range.start).lte("shift_date", range.end).order("shift_date").order("start_time");
     if (result.error) throw new Error("Impossibile caricare i turni mensili.");
     shifts = (result.data ?? []) as Shift[];
   }

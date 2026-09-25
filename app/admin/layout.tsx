@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { createAuthClient } from "@/lib/supabase/auth-server";
+import { AdminIdleLogout } from "./admin-idle-logout";
 
 export const metadata: Metadata = {
   title: "Amministrazione | Il Caffè delle Valli",
@@ -24,8 +25,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-dvh bg-cream text-ink">
+      <AdminIdleLogout />
       <header className="admin-header">
-        <Link className="admin-brand" href="/admin"><Image src="/Logo_black_trasparent.png" alt="Il Caffè delle Valli" width={2843} height={820} /><span><LayoutDashboard size={14} /> Dashboard</span></Link>
+        <Link className="admin-brand" href={profile.role === "admin" ? "/admin" : "/admin/i-miei-turni"}><Image src="/Logo_black_trasparent.png" alt="Il Caffè delle Valli" width={2843} height={820} /><span><LayoutDashboard size={14} /> {profile.role === "admin" ? "Dashboard" : "I miei turni"}</span></Link>
         <div className="flex items-center gap-4">
           {profile.role === "admin" && <Link className="admin-notification-link" href="/admin/notifiche" aria-label={`${unreadNotifications} notifiche da leggere`}><Bell size={19} />{unreadNotifications > 0 && <span>{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</Link>}
           <Link className="admin-profile-link" href="/admin/profilo" aria-label="Profilo e sicurezza"><UserRound size={17} /><span className="hidden text-right sm:block"><strong>{profile.displayName || profile.email}</strong><small>{profile.role}</small></span></Link>

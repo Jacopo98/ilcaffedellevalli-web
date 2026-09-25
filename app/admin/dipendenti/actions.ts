@@ -77,6 +77,13 @@ export async function updateEmployee(formData: FormData): Promise<EmployeeAction
   const value = parsed.data;
   const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
   if (error) return { ok: false, error: error.code === "23505" ? "Esiste già un dipendente con questo nome." : "Impossibile salvare il dipendente." };
+  const accountId = String(formData.get("user_account_id") ?? "");
+  const { error: unlinkError } = await supabase.from("profiles").update({ employee_id: null }).eq("employee_id", id.data);
+  if (unlinkError) return { ok: false, error: "Dipendente salvato, ma associazione account non aggiornata. Esegui employee-portal-migration.sql." };
+  if (accountId) {
+    const { error: linkError } = await supabase.from("profiles").update({ employee_id: id.data }).eq("id", accountId).eq("role", "employee");
+    if (linkError) return { ok: false, error: "Dipendente salvato, ma account non associato." };
+  }
   refreshSchedule();
   return { ok: true };
 }
@@ -95,10 +102,48 @@ export async function createShift(formData: FormData): Promise<EmployeeActionRes
   const { supabase } = await requireAdmin();
   const value = parsed.data;
   const isWork = value.entryType === "work" || value.entryType === "extra";
-  const { error } = await supabase.from("work_shifts").insert({ employee_id: value.employeeId, entry_type: value.entryType, shift_date: value.shiftDate, start_time: value.startTime, end_time: value.endTime, actual_start_time: isWork ? value.actualStartTime : null, actual_end_time: isWork ? value.actualEndTime : null, break_minutes: isWork ? value.breakMinutes : 0, notes: value.notes });
+  const { error } = await supabase.from("work_shifts").insert({ employee_id: value.employeeId, entry_type: value.entryType, shift_date: value.shiftDate, start_time: value.startTime, end_time: value.endTime, actual_start_time: isWork ? value.actualStartTime : null, actual_end_time: isWork ? value.actualEndTime : null, break_minutes: isWork ? value.breakMinutes : 0, notes: value.notes, approval_status: "approved" });
   if (error) return shiftError(error.code);
   refreshSchedule();
   return { ok: true };
+}
+
+export async function reviewExtraRequest(formData: FormData): Promise<EmployeeActionResult> {
+  const id = idSchema.safeParse(formData.get("id"));
+  const decision = z.enum(["approved", "rejected"]).safeParse(formData.get("decision"));
+  if (!id.success || !decision.success) return { ok: false, error: "Richiesta non valida." };
+  const { supabase, profile } = await requireAdmin();
+  const { error } = await supabase.from("work_shifts").update({ approval_status: decision.data, approved_at: new Date().toISOString(), approved_by: profile.id }).eq("id", id.data).eq("entry_type", "extra");
+  if (error) return { ok: false, error: "Impossibile aggiornare la richiesta." };
+  refreshSchedule(); return { ok: true };
+}
+
+export async function reviewShiftChangeRequest(formData: FormData): Promise<EmployeeActionResult> {
+  const id=idSchema.safeParse(formData.get("id"));const decision=z.enum(["approved","rejected"]).safeParse(formData.get("decision"));
+  if(!id.success||!decision.success)return{ok:false,error:"Richiesta non valida."};
+  const {supabase,profile}=await requireAdmin();
+  const {data:request,error:readError}=await supabase.from("shift_change_requests").select("id,employee_id,work_shift_id,request_type,proposed_date,proposed_start_time,proposed_end_time,notes,status").eq("id",id.data).eq("status","pending").single();
+  if(readError||!request)return{ok:false,error:"Richiesta non più disponibile."};
+  if(decision.data==="approved"){
+    const operation=request.request_type==="add_extra"
+      ? await supabase.from("work_shifts").insert({employee_id:request.employee_id,entry_type:"extra",shift_date:request.proposed_date,start_time:request.proposed_start_time,end_time:request.proposed_end_time,break_minutes:0,notes:request.notes,approval_status:"approved",approved_at:new Date().toISOString(),approved_by:profile.id})
+      : await supabase.from("work_shifts").update({shift_date:request.proposed_date,start_time:request.proposed_start_time,end_time:request.proposed_end_time}).eq("id",request.work_shift_id);
+    if(operation.error)return shiftError(operation.error.code);
+  }
+  const {error}=await supabase.from("shift_change_requests").update({status:decision.data,reviewed_by:profile.id,reviewed_at:new Date().toISOString()}).eq("id",id.data).eq("status","pending");
+  if(error)return{ok:false,error:"Impossibile completare la revisione."};
+  refreshSchedule();return{ok:true};
+}
+
+export async function linkEmployeeAccount(formData: FormData): Promise<EmployeeActionResult> {
+  const accountId = z.string().uuid().safeParse(formData.get("account_id"));
+  const employeeId = z.union([z.literal(""), idSchema]).safeParse(formData.get("employee_id") ?? "");
+  if (!accountId.success || !employeeId.success) return { ok: false, error: "Associazione non valida." };
+  const { supabase } = await requireAdmin();
+  if (employeeId.data !== "") await supabase.from("profiles").update({ employee_id: null }).eq("employee_id", employeeId.data);
+  const { error } = await supabase.from("profiles").update({ employee_id: employeeId.data === "" ? null : employeeId.data }).eq("id", accountId.data).eq("role", "employee");
+  if (error) return { ok: false, error: "Impossibile associare l'account. Esegui employee-portal-migration.sql." };
+  refreshSchedule(); return { ok: true };
 }
 
 export async function updateShift(formData: FormData): Promise<EmployeeActionResult> {
@@ -143,6 +188,7 @@ export async function duplicateWeek(formData: FormData): Promise<EmployeeActionR
   const { data: sourceShifts, error: sourceError } = await supabase
     .from("work_shifts")
     .select("employee_id, entry_type, shift_date, start_time, end_time, break_minutes, notes")
+    .eq("approval_status", "approved")
     .gte("shift_date", sourceWeek.data)
     .lte("shift_date", sourceEnd)
     .order("shift_date")

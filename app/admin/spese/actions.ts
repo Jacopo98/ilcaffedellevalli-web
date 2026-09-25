@@ -57,12 +57,19 @@ export async function updateExpenseCategory(formData: FormData): Promise<Expense
 }
 
 const revenueMoney = z.string().trim().min(1).transform((value) => Number(value.replace(",", "."))).pipe(z.number().finite().min(0).max(1000000));
+const optionalRevenueCount = z.string().trim().transform((value) => value === "" ? null : Number(value)).pipe(z.number().int().min(0).max(100000).nullable());
 const revenueSchema = z.object({
   date: z.iso.date(), drawerCount: revenueMoney, total: revenueMoney, pos: revenueMoney, issuedInvoices: revenueMoney,
   briochesCount: z.string().trim().min(1, "Inserisci il numero di brioches, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
-  lunchCoversCount: z.string().trim().min(1, "Inserisci il numero di coperti, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
+  lunchCoversCount: optionalRevenueCount,
   notes: optional(1000),
-}).refine((value) => value.pos <= value.total, { message: "Il POS non può superare la chiusura totale.", path: ["pos"] });
+}).superRefine((value, context) => {
+  if (value.pos > value.total) context.addIssue({ code: "custom", message: "Il POS non può superare la chiusura totale.", path: ["pos"] });
+  const day = new Date(`${value.date}T12:00:00Z`).getUTCDay();
+  if (day !== 0 && day !== 6 && value.lunchCoversCount === null) {
+    context.addIssue({ code: "custom", message: "Inserisci il numero di coperti, anche 0 se non lo conosci.", path: ["lunchCoversCount"] });
+  }
+});
 
 export async function saveDailyRevenue(formData: FormData): Promise<ExpenseActionResult> {
   const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), drawerCount: formData.get("drawer_count"), total: formData.get("total"), pos: formData.get("pos"), issuedInvoices: formData.get("issued_invoices") ?? "0", briochesCount: formData.get("brioches_count") ?? "", lunchCoversCount: formData.get("lunch_covers_count") ?? "", notes: formData.get("notes") ?? "" });

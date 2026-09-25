@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowRight, Banknote, CalendarDays, Coffee, ShieldCheck, Users, WalletCards } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";
+  if (profile?.role === "employee") redirect("/admin/i-miei-turni");
   return (
     <main className="admin-container admin-dashboard-main">
       <section className="admin-welcome">

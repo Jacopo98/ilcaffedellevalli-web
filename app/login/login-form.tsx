@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { LockKeyhole, Mail } from "lucide-react";
 import { login, type LoginState } from "./actions";
 
@@ -8,6 +8,10 @@ const initialState: LoginState = {};
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(login, initialState);
+
+  useEffect(() => {
+    window.localStorage.removeItem("admin-last-activity");
+  }, []);
 
   return (
     <form action={action} className="admin-form mt-8">
