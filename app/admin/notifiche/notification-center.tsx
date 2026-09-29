@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Archive, ArchiveRestore, ArrowLeft, Bell, CalendarClock, Check, Clock3, Mail, Plus, Send, StickyNote, X } from "lucide-react";
-import { createAdminNote, markNotification, sendTestNotificationEmail, setNotificationArchive, updateEmailPreference, type NotificationResult } from "./actions";
+import { createAdminNote, sendTestNotificationEmail, setNotificationArchive, updateEmailPreference, type NotificationResult } from "./actions";
 
 type Notice = {
   id: number;
@@ -82,7 +82,7 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
         const scheduled = Boolean(notice.remind_on && notice.remind_on > today);
         const daysToDue = notice.due_date ? Math.ceil((new Date(`${notice.due_date}T12:00:00`).getTime() - new Date(`${today}T12:00:00`).getTime()) / 86400000) : null;
         const timing = daysToDue === null ? "" : daysToDue < 0 ? "overdue" : daysToDue <= 1 ? "urgent" : daysToDue <= 7 ? "near" : "";
-        return <NotificationRow key={notice.id} archived={view === "archive"} canRead={!scheduled && !notice.is_read} onRead={() => { const data = new FormData(); data.set("id", String(notice.id)); run(markNotification, data); }} onArchive={() => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data); }}>
+        return <NotificationRow key={notice.id} archived={view === "archive"} onArchive={() => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data); }}>
           <article className={`${notice.is_read ? "read" : ""} ${notice.priority === "high" ? "high" : ""} ${scheduled ? "scheduled" : ""} ${timing}`}>
           <span className="notification-icon">{notice.kind === "note" ? <StickyNote/> : <CalendarClock/>}</span>
           <div>
@@ -91,7 +91,7 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
             {notice.message && <p>{notice.message}</p>}
             {notice.kind === "note" && notice.remind_on && <div className="notification-reminder-meta"><span><Clock3 size={13}/> Avviso dal {displayDate(notice.remind_on)}</span>{notice.email_reminder && <span><Mail size={13}/> Email richiesta</span>}</div>}
           </div>
-          <div className="notification-card-actions">{scheduled && <span className="notification-scheduled-badge">Programmato</span>}{!scheduled && !notice.is_read && <button aria-label="Segna come letta" onClick={() => { const data = new FormData(); data.set("id", String(notice.id)); run(markNotification, data); }}><Check/></button>}<button aria-label={view === "archive" ? "Riattiva" : "Archivia"} onClick={() => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data); }}>{view === "archive" ? <ArchiveRestore/> : <Archive/>}</button></div>
+          <div className="notification-card-actions">{scheduled && <span className="notification-scheduled-badge">Programmato</span>}<button title={view === "archive" ? "Riattiva notifica" : "Chiudi e archivia"} aria-label={view === "archive" ? "Riattiva notifica" : "Chiudi e archivia"} onClick={() => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data); }}>{view === "archive" ? <ArchiveRestore/> : <Check/>}</button></div>
           </article>
         </NotificationRow>;
       })}
@@ -114,12 +114,12 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
   </main>;
 }
 
-function NotificationRow({ children, archived, canRead, onRead, onArchive }: { children: React.ReactNode; archived: boolean; canRead: boolean; onRead: () => void; onArchive: () => void }) {
+function NotificationRow({ children, archived, onArchive }: { children: React.ReactNode; archived: boolean; onArchive: () => void }) {
   const viewport = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => { if (viewport.current) viewport.current.scrollLeft = 72; }, []);
   return <div className="notification-swipe" ref={viewport}>
     <div className="notification-swipe-track">
-      <button className="notification-swipe-read" disabled={!canRead || archived} onClick={onRead}><Check size={18}/><span>Letta</span></button>
+      <button className="notification-swipe-read" onClick={onArchive}>{archived ? <ArchiveRestore size={18}/> : <Check size={18}/>}<span>{archived ? "Riattiva" : "Chiudi"}</span></button>
       {children}
       <button className="notification-swipe-archive" onClick={onArchive}>{archived ? <ArchiveRestore size={18}/> : <Archive size={18}/>}<span>{archived ? "Riattiva" : "Archivia"}</span></button>
     </div>

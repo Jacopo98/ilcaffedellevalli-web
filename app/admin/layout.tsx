@@ -27,7 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="admin-shell min-h-dvh bg-cream text-ink">
+    <div className="admin-app-shell min-h-dvh bg-cream text-ink">
       <AdminIdleLogout />
       <Suspense fallback={null}><AdminNavigationFeedback /></Suspense>
       <header className="admin-header">
