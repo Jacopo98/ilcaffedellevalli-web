@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Bell, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { createAuthClient } from "@/lib/supabase/auth-server";
 import { AdminIdleLogout } from "./admin-idle-logout";
+import { AdminNavigationFeedback } from "./admin-navigation-feedback";
 
 export const metadata: Metadata = {
   title: "Amministrazione | Il Caffè delle Valli",
@@ -20,13 +22,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile.role === "admin") {
     const supabase = await createAuthClient();
     const today = new Date().toISOString().slice(0, 10);
-    const { count } = await supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("is_read", false).or(`remind_on.is.null,remind_on.lte.${today}`);
+    const { count } = await supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("is_read", false).is("archived_at", null).or(`remind_on.is.null,remind_on.lte.${today}`);
     unreadNotifications = count ?? 0;
   }
 
   return (
-    <div className="min-h-dvh bg-cream text-ink">
+    <div className="admin-shell min-h-dvh bg-cream text-ink">
       <AdminIdleLogout />
+      <Suspense fallback={null}><AdminNavigationFeedback /></Suspense>
       <header className="admin-header">
         <Link className="admin-brand" href={profile.role === "admin" ? "/admin" : "/admin/i-miei-turni"}><Image src="/Logo_black_trasparent.png" alt="Il Caffè delle Valli" width={2843} height={820} /><span><LayoutDashboard size={14} /> {profile.role === "admin" ? "Dashboard" : "I miei turni"}</span></Link>
         <div className="flex items-center gap-4">
