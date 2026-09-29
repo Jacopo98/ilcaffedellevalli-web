@@ -1135,6 +1135,7 @@ button { cursor: pointer; }
 .admin-navigation-feedback strong { font-size: .63rem; letter-spacing: .02em; }
 .admin-navigation-spinner { width: .85rem; height: .85rem; flex: 0 0 auto; border: 2px solid rgba(255,255,255,.28); border-top-color: var(--orange); border-radius: 50%; animation: admin-feedback-spin .65s linear infinite; }
 @keyframes admin-feedback-spin { to { transform: rotate(360deg); } }
+.notification-action-spinner { animation: admin-feedback-spin .65s linear infinite; }
 @keyframes admin-feedback-in { from { opacity: 0; transform: translate(-50%,-.35rem); } to { opacity: 1; transform: translate(-50%,0); } }
 
 @media (max-width: 639px) {

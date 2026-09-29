@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
-import { Archive, ArchiveRestore, ArrowLeft, Bell, CalendarClock, Check, Clock3, Mail, Plus, Send, StickyNote, X } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, Bell, CalendarClock, Check, Clock3, LoaderCircle, Mail, Plus, Send, StickyNote, X } from "lucide-react";
 import { createAdminNote, sendTestNotificationEmail, setNotificationArchive, updateEmailPreference, type NotificationResult } from "./actions";
 
 type Notice = {
@@ -28,6 +28,7 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
   const [editor, setEditor] = useState(false);
   const [view, setView] = useState<"active" | "archive">("active");
   const [pending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [emailTestMessage, setEmailTestMessage] = useState("");
   const today = new Date().toISOString().slice(0, 10);
@@ -36,23 +37,33 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
   const archivedNotices = notifications.filter((notice) => notice.archived_at);
   const visibleNotices = view === "active" ? activeNotices : archivedNotices;
 
-  function run(action: (data: FormData) => Promise<NotificationResult>, data: FormData, done = () => {}) {
+  function run(action: (data: FormData) => Promise<NotificationResult>, data: FormData, done = () => {}, actionKey = "general") {
     setError("");
+    setPendingAction(actionKey);
     startTransition(async () => {
-      const result = await action(data);
-      if (!result.ok) { setError(result.error || "Errore"); return; }
-      done();
-      router.refresh();
+      try {
+        const result = await action(data);
+        if (!result.ok) { setError(result.error || "Errore"); return; }
+        done();
+        router.refresh();
+      } finally {
+        setPendingAction(null);
+      }
     });
   }
 
   function testEmail() {
     setError("");
     setEmailTestMessage("");
+    setPendingAction("email-test");
     startTransition(async () => {
-      const result = await sendTestNotificationEmail();
-      if (!result.ok) { setError(result.error || "Invio di prova non riuscito"); return; }
-      setEmailTestMessage(result.message || "Email di prova inviata.");
+      try {
+        const result = await sendTestNotificationEmail();
+        if (!result.ok) { setError(result.error || "Invio di prova non riuscito"); return; }
+        setEmailTestMessage(result.message || "Email di prova inviata.");
+      } finally {
+        setPendingAction(null);
+      }
     });
   }
 
@@ -67,7 +78,7 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
     </header>
     <section className="notification-email-preference">
       <div><strong>Promemoria via email</strong><p>Ricevi su {email} sia le scadenze dei pagamenti sia i tuoi promemoria personali.</p></div>
-      <div className="notification-email-tools"><button className="notification-email-test" type="button" disabled={pending || !emailEnabled} onClick={testEmail}><Send size={14}/>{pending ? "Invio…" : "Invia email di prova"}</button><label className="notification-email-toggle"><span>{emailEnabled ? "Attive" : "Disattivate"}</span><input type="checkbox" checked={emailEnabled} disabled={pending || !emailPreferenceReady} onChange={(event) => { const data = new FormData(); data.set("enabled", String(event.target.checked)); run(updateEmailPreference, data); }}/><i/></label></div>
+      <div className="notification-email-tools"><button className="notification-email-test" type="button" disabled={pending || !emailEnabled} onClick={testEmail}>{pendingAction === "email-test" ? <LoaderCircle className="notification-action-spinner" size={14}/> : <Send size={14}/>} {pendingAction === "email-test" ? "Invio…" : "Invia email di prova"}</button><label className="notification-email-toggle"><span>{emailEnabled ? "Attive" : "Disattivate"}</span><input type="checkbox" checked={emailEnabled} disabled={pending || !emailPreferenceReady} onChange={(event) => { const data = new FormData(); data.set("enabled", String(event.target.checked)); run(updateEmailPreference, data, undefined, "email-preference"); }}/><i/></label></div>
     </section>
     {!emailPreferenceReady && <div className="staff-alert">Esegui notification-email-preferences-migration.sql per attivare le preferenze email.</div>}
     {!setupReady && <div className="staff-alert">Esegui personal-reminders-migration.sql su Supabase.</div>}
@@ -82,7 +93,9 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
         const scheduled = Boolean(notice.remind_on && notice.remind_on > today);
         const daysToDue = notice.due_date ? Math.ceil((new Date(`${notice.due_date}T12:00:00`).getTime() - new Date(`${today}T12:00:00`).getTime()) / 86400000) : null;
         const timing = daysToDue === null ? "" : daysToDue < 0 ? "overdue" : daysToDue <= 1 ? "urgent" : daysToDue <= 7 ? "near" : "";
-        return <NotificationRow key={notice.id} archived={view === "archive"} onArchive={() => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data); }}>
+        const archivePending = pendingAction === `archive-${notice.id}`;
+        const toggleArchive = () => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data, undefined, `archive-${notice.id}`); };
+        return <NotificationRow key={notice.id} archived={view === "archive"} pending={archivePending} onArchive={toggleArchive}>
           <article className={`${notice.is_read ? "read" : ""} ${notice.priority === "high" ? "high" : ""} ${scheduled ? "scheduled" : ""} ${timing}`}>
           <span className="notification-icon">{notice.kind === "note" ? <StickyNote/> : <CalendarClock/>}</span>
           <div>
@@ -91,7 +104,7 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
             {notice.message && <p>{notice.message}</p>}
             {notice.kind === "note" && notice.remind_on && <div className="notification-reminder-meta"><span><Clock3 size={13}/> Avviso dal {displayDate(notice.remind_on)}</span>{notice.email_reminder && <span><Mail size={13}/> Email richiesta</span>}</div>}
           </div>
-          <div className="notification-card-actions">{scheduled && <span className="notification-scheduled-badge">Programmato</span>}<button title={view === "archive" ? "Riattiva notifica" : "Chiudi e archivia"} aria-label={view === "archive" ? "Riattiva notifica" : "Chiudi e archivia"} onClick={() => { const data = new FormData(); data.set("id", String(notice.id)); data.set("archived", String(view !== "archive")); run(setNotificationArchive, data); }}>{view === "archive" ? <ArchiveRestore/> : <Check/>}</button></div>
+          <div className="notification-card-actions">{scheduled && <span className="notification-scheduled-badge">Programmato</span>}<button disabled={archivePending} title={view === "archive" ? "Riattiva notifica" : "Chiudi e archivia"} aria-label={view === "archive" ? "Riattiva notifica" : "Chiudi e archivia"} onClick={toggleArchive}>{archivePending ? <LoaderCircle className="notification-action-spinner"/> : view === "archive" ? <ArchiveRestore/> : <Check/>}</button></div>
           </article>
         </NotificationRow>;
       })}
@@ -114,14 +127,14 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
   </main>;
 }
 
-function NotificationRow({ children, archived, onArchive }: { children: React.ReactNode; archived: boolean; onArchive: () => void }) {
+function NotificationRow({ children, archived, pending, onArchive }: { children: React.ReactNode; archived: boolean; pending: boolean; onArchive: () => void }) {
   const viewport = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => { if (viewport.current) viewport.current.scrollLeft = 72; }, []);
   return <div className="notification-swipe" ref={viewport}>
     <div className="notification-swipe-track">
-      <button className="notification-swipe-read" onClick={onArchive}>{archived ? <ArchiveRestore size={18}/> : <Check size={18}/>}<span>{archived ? "Riattiva" : "Chiudi"}</span></button>
+      <button className="notification-swipe-read" disabled={pending} onClick={onArchive}>{pending ? <LoaderCircle className="notification-action-spinner" size={18}/> : archived ? <ArchiveRestore size={18}/> : <Check size={18}/>}<span>{pending ? "Attendi" : archived ? "Riattiva" : "Chiudi"}</span></button>
       {children}
-      <button className="notification-swipe-archive" onClick={onArchive}>{archived ? <ArchiveRestore size={18}/> : <Archive size={18}/>}<span>{archived ? "Riattiva" : "Archivia"}</span></button>
+      <button className="notification-swipe-archive" disabled={pending} onClick={onArchive}>{pending ? <LoaderCircle className="notification-action-spinner" size={18}/> : archived ? <ArchiveRestore size={18}/> : <Archive size={18}/>}<span>{pending ? "Attendi" : archived ? "Riattiva" : "Archivia"}</span></button>
     </div>
   </div>;
 }
