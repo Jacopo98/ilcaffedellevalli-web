@@ -21,7 +21,22 @@ export async function GET(request: Request) {
     ...(plans.data ?? []).map((entry) => ({ key: `plan-${entry.id}-${entry.due_date}`, title: (entry.recurring_cost_plans as unknown as { name: string } | null)?.name ?? "Costo ricorrente", date: entry.due_date!, amount: entry.cash_amount_cents ?? 0 })),
   ];
   for (const item of items) await supabase.from("admin_notifications").upsert({ kind: "payment_due", title: `Pagamento in scadenza: ${item.title}`, message: `Importo previsto: ${(item.amount / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}`, due_date: item.date, priority: "high", fingerprint: item.key }, { onConflict: "fingerprint", ignoreDuplicates: true });
-  if (!items.length) return Response.json({ ok: true, count: 0 });
+  const { data: reminders, error: remindersError } = await supabase.from("admin_notifications").select("id,title,message,due_date,email_reminder,created_by").eq("kind", "note").is("reminder_sent_at", null).lte("remind_on", from);
+  if (remindersError) return Response.json({ error: "Reminder query failed. Run personal-reminders-migration.sql." }, { status: 500 });
+  for (const reminder of reminders ?? []) await supabase.from("admin_notifications").update({ is_read: false, read_at: null }).eq("id", reminder.id);
+  const reminderOwnerIds = [...new Set((reminders ?? []).map((reminder) => reminder.created_by).filter(Boolean))];
+  const { data: reminderOwners } = reminderOwnerIds.length ? await supabase.from("profiles").select("id,email,receive_email_notifications").in("id", reminderOwnerIds) : { data: [] };
+  const ownerMap = new Map((reminderOwners ?? []).map((owner) => [owner.id, owner]));
+  let reminderEmails = 0;
+  for (const reminder of reminders ?? []) {
+    if (!reminder.email_reminder) { await supabase.from("admin_notifications").update({ reminder_sent_at: new Date().toISOString() }).eq("id", reminder.id); continue; }
+    const owner = reminder.created_by ? ownerMap.get(reminder.created_by) : null;
+    if (!owner?.receive_email_notifications || !owner.email || !process.env.RESEND_API_KEY || !process.env.REMINDER_EMAIL_FROM) continue;
+    const html = `<div style="font-family:Arial;color:#1C1C1A"><h1>${safe(reminder.title)}</h1>${reminder.message ? `<p>${safe(reminder.message)}</p>` : ""}<p><strong>Scadenza:</strong> ${safe(reminder.due_date ?? "non indicata")}</p></div>`;
+    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `personal-reminder-${reminder.id}-${from}` }, body: JSON.stringify({ from: process.env.REMINDER_EMAIL_FROM, to: [owner.email], subject: `Promemoria: ${reminder.title}`, html }) });
+    if (response.ok) { await supabase.from("admin_notifications").update({ reminder_sent_at: new Date().toISOString() }).eq("id", reminder.id); reminderEmails++; }
+  }
+  if (!items.length) return Response.json({ ok: true, count: 0, reminders: reminders?.length ?? 0, reminderEmails });
   if (!process.env.RESEND_API_KEY || !process.env.REMINDER_EMAIL_FROM) return Response.json({ ok: true, count: items.length, email: "not-configured" });
 
   const { data: optedInAdmins } = await supabase.from("profiles").select("email").eq("role", "admin").eq("receive_email_notifications", true);

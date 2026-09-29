@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, FileUp, ReceiptText, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, FileUp, ListFilter, ReceiptText, Search, X } from "lucide-react";
 import { importSupplierInvoices, updateSupplierInvoice } from "./invoice-actions";
 
 export type SupplierInvoice = {
@@ -47,18 +47,51 @@ export type SupplierInvoice = {
     vat_cents: number;
     nature: string | null;
   }[];
+  supplier_invoice_payments: {
+    id: number;
+    payment_group_number: number;
+    installment_number: number;
+    payment_terms: string | null;
+    method_code: string | null;
+    due_date: string | null;
+    reference_date: string | null;
+    payment_days: number | null;
+    amount_cents: number | null;
+    beneficiary: string | null;
+    bank_name: string | null;
+    iban: string | null;
+    abi: string | null;
+    cab: string | null;
+    bic: string | null;
+    postal_office_code: string | null;
+    payee_first_name: string | null;
+    payee_last_name: string | null;
+    payee_tax_code: string | null;
+    payee_title: string | null;
+    payment_code: string | null;
+    discount_cents: number | null;
+    early_discount_due_date: string | null;
+    penalty_cents: number | null;
+    penalty_due_date: string | null;
+  }[];
 };
 
 const euro = (cents: number) => (cents / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
 const date = (value: string) => new Date(`${value}T12:00:00Z`).toLocaleDateString("it-IT");
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const monthLabel = (value: string) => new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}-01T12:00:00Z`));
+const PAYMENT_METHODS: Record<string, string> = { MP01: "Contanti", MP02: "Assegno", MP03: "Assegno circolare", MP04: "Contanti presso tesoreria", MP05: "Bonifico", MP06: "Vaglia cambiario", MP07: "Bollettino bancario", MP08: "Carta di pagamento", MP09: "RID", MP10: "RID utenze", MP11: "RID veloce", MP12: "RIBA", MP13: "MAV", MP14: "Quietanza erario", MP15: "Giroconto", MP16: "Domiciliazione bancaria", MP17: "Domiciliazione postale", MP18: "Bollettino postale", MP19: "SEPA Direct Debit", MP20: "SEPA Direct Debit CORE", MP21: "SEPA Direct Debit B2B", MP22: "Trattenuta su somme riscosse", MP23: "PagoPA" };
+const paymentMethodLabel = (code: string | null) => code ? PAYMENT_METHODS[code] ?? code : "Non indicata";
+const paymentTermsLabel = (code: string | null) => code === "TP01" ? "Pagamento a rate" : code === "TP02" ? "Pagamento completo" : code === "TP03" ? "Anticipo" : code ?? "Condizione non indicata";
 
 export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice[]; onBack: () => void }) {
   const router = useRouter();
   const [upload, setUpload] = useState(false);
   const [selected, setSelected] = useState<SupplierInvoice | null>(null);
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useState("all");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"date_desc" | "date_asc" | "unpaid_first" | "paid_first">("date_desc");
+  const [unpaidOnly, setUnpaidOnly] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [message, setMessage] = useState("");
@@ -70,8 +103,11 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
     const normalizedAmount = query.replace(/\s/g, "").replace(/\./g, "").replace(",", ".").replace(/[^0-9.-]/g, "");
     const amount = normalizedAmount ? Number(normalizedAmount) : Number.NaN;
 
-    return invoices.filter((invoice) => {
-      if (!invoice.issue_date.startsWith(month)) return false;
+    const matches = invoices.filter((invoice) => {
+      if (month !== "all" && !invoice.issue_date.startsWith(month)) return false;
+      if (unpaidOnly && invoice.payment_status !== "unpaid") return false;
+      const invoiceMethods = invoice.supplier_invoice_payments.map((payment) => payment.method_code).filter(Boolean);
+      if (paymentMethod !== "all" && !invoiceMethods.includes(paymentMethod) && invoice.payment_method !== paymentMethod) return false;
       if (!query) return true;
       const supplierMatch = invoice.supplier_name.toLocaleLowerCase("it-IT").includes(query);
       const exactAmountMatch = Number.isFinite(amount) && [invoice.taxable_cents, invoice.total_cents]
@@ -80,7 +116,17 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
         .some((value) => (value / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 }).includes(query));
       return supplierMatch || exactAmountMatch || formattedAmountMatch;
     });
-  }, [invoices, month, search]);
+
+    return matches.sort((a, b) => {
+      if (sort === "date_asc") return a.issue_date.localeCompare(b.issue_date) || a.id - b.id;
+      if (sort === "unpaid_first") return Number(a.payment_status === "paid") - Number(b.payment_status === "paid") || b.issue_date.localeCompare(a.issue_date);
+      if (sort === "paid_first") return Number(b.payment_status === "paid") - Number(a.payment_status === "paid") || b.issue_date.localeCompare(a.issue_date);
+      return b.issue_date.localeCompare(a.issue_date) || b.id - a.id;
+    });
+  }, [invoices, month, search, sort, unpaidOnly, paymentMethod]);
+
+  const availablePaymentMethods = useMemo(() => [...new Set(invoices.flatMap((invoice) => [invoice.payment_method, ...invoice.supplier_invoice_payments.map((payment) => payment.method_code)]).filter((value): value is string => Boolean(value)))].sort((a, b) => paymentMethodLabel(a).localeCompare(paymentMethodLabel(b), "it")), [invoices]);
+  const availableMonths = useMemo(() => [...new Set(invoices.map((invoice) => invoice.issue_date.slice(0, 7)))].sort((a, b) => b.localeCompare(a)), [invoices]);
 
   const pageCount = Math.max(1, Math.ceil(filteredInvoices.length / pageSize));
   const visiblePage = Math.min(page, pageCount);
@@ -126,12 +172,36 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
     <section className="invoice-filters" aria-label="Filtri archivio fatture">
       <label>
         <span>Mese di competenza</span>
-        <input type="month" value={month} onChange={(event) => { setMonth(event.target.value); setPage(1); }} />
+        <select value={month} onChange={(event) => { setMonth(event.target.value); setPage(1); }}>
+          <option value="all">Tutti i periodi</option>
+          {availableMonths.map((value) => <option value={value} key={value}>{monthLabel(value)}</option>)}
+        </select>
       </label>
       <label className="invoice-search">
         <span>Cerca per fornitore o importo</span>
         <div><Search size={16} /><input type="search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Es. fornitore o 120,00" /></div>
       </label>
+      <label>
+        <span>Ordina elenco</span>
+        <select value={sort} onChange={(event) => { setSort(event.target.value as typeof sort); setPage(1); }}>
+          <option value="date_desc">Data · più recenti</option>
+          <option value="date_asc">Data · meno recenti</option>
+          <option value="unpaid_first">Non pagate prima</option>
+          <option value="paid_first">Pagate prima</option>
+        </select>
+      </label>
+      <label>
+        <span>Modalità di pagamento</span>
+        <select value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setPage(1); }}>
+          <option value="all">Tutte le modalità</option>
+          {availablePaymentMethods.map((method) => <option value={method} key={method}>{paymentMethodLabel(method)}</option>)}
+        </select>
+      </label>
+      <button type="button" className={`invoice-unpaid-filter${unpaidOnly ? " active" : ""}`} aria-pressed={unpaidOnly} onClick={() => { setUnpaidOnly((value) => !value); setPage(1); }}>
+        <ListFilter size={16}/>
+        <span><small>Filtro rapido</small><strong>{unpaidOnly ? "Solo non pagate" : "Mostra non pagate"}</strong></span>
+        {unpaidOnly && <Check size={16}/>}
+      </button>
     </section>
 
     <section className="expense-panel invoice-list-panel">
@@ -142,18 +212,19 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
       </div>
       <div className="expense-table-wrap">
         <table className="invoice-table">
-          <thead><tr><th>Data</th><th>Fornitore</th><th>Numero</th><th>Imponibile</th><th>Totale</th><th>Scadenza</th><th>Stato</th></tr></thead>
+          <thead><tr><th>Data</th><th>Fornitore</th><th>Numero</th><th>Imponibile</th><th>Totale</th><th>Pagamento</th><th>Scadenza</th><th>Stato</th></tr></thead>
           <tbody>{paginatedInvoices.map((invoice) => <tr key={invoice.id} onClick={() => setSelected(invoice)}>
             <td>{date(invoice.issue_date)}</td>
             <td><strong>{invoice.supplier_name}</strong><small>P.IVA {invoice.supplier_vat_country}{invoice.supplier_vat_number}</small></td>
             <td>{invoice.invoice_number}</td>
             <td>{euro(invoice.taxable_cents)}</td>
             <td><strong>{euro(invoice.total_cents)}</strong></td>
+            <td>{paymentMethodLabel(invoice.supplier_invoice_payments.find((payment) => payment.method_code)?.method_code ?? invoice.payment_method)}</td>
             <td>{invoice.due_date ? date(invoice.due_date) : "Da inserire"}</td>
             <td><span className={`invoice-status ${invoice.payment_status}`}>{invoice.payment_status === "paid" ? "Pagata" : "Non pagata"}</span></td>
           </tr>)}</tbody>
         </table>
-        {!filteredInvoices.length && <p className="expense-empty">Nessuna fattura trovata nel mese selezionato.</p>}
+        {!filteredInvoices.length && <p className="expense-empty">Nessuna fattura corrisponde ai filtri selezionati.</p>}
       </div>
       <footer className="invoice-pagination">
         <label><span>Righe</span><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option></select></label>
@@ -191,6 +262,25 @@ function InvoiceDetail({ invoice, pending, onClose, onSave }: { invoice: Supplie
       </section>
       {invoice.description && <p className="invoice-cause"><small>Causale</small>{invoice.description}</p>}
       <div className="expense-table-wrap invoice-lines-wrap"><table><thead><tr><th>Descrizione</th><th>Q.tà</th><th>Prezzo</th><th>IVA</th><th>Totale</th></tr></thead><tbody>{invoice.supplier_invoice_lines.map((line) => <tr key={line.id}><td><strong>{line.description}</strong>{line.code && <small>{line.code}</small>}</td><td>{line.quantity ?? "—"} {line.unit}</td><td>{line.unit_price_cents === null ? "—" : euro(line.unit_price_cents)}</td><td>{line.vat_rate === null ? "—" : `${line.vat_rate}%`}</td><td>{euro(line.total_cents)}</td></tr>)}</tbody></table></div>
+      <section className="invoice-payment-details">
+        <header><div><p className="admin-kicker">Dati dall’XML</p><h3>Informazioni di pagamento</h3></div><span>{invoice.supplier_invoice_payments.length} {invoice.supplier_invoice_payments.length === 1 ? "pagamento" : "rate"}</span></header>
+        {invoice.supplier_invoice_payments.length ? <div className="invoice-payment-grid">{invoice.supplier_invoice_payments.map((payment) => <article key={payment.id}>
+          <div className="invoice-payment-heading"><span>{paymentMethodLabel(payment.method_code)}</span><strong>{payment.amount_cents === null ? "Importo non indicato" : euro(payment.amount_cents)}</strong></div>
+          <dl>
+            <div><dt>Condizioni</dt><dd>{paymentTermsLabel(payment.payment_terms)}</dd></div>
+            <div><dt>Scadenza</dt><dd>{payment.due_date ? date(payment.due_date) : "Non indicata"}</dd></div>
+            {payment.reference_date && <div><dt>Data riferimento</dt><dd>{date(payment.reference_date)}{payment.payment_days !== null ? ` · ${payment.payment_days} giorni` : ""}</dd></div>}
+            {payment.beneficiary && <div><dt>Beneficiario</dt><dd>{payment.beneficiary}</dd></div>}
+            {payment.bank_name && <div><dt>Istituto</dt><dd>{payment.bank_name}</dd></div>}
+            {payment.iban && <div className="payment-wide"><dt>IBAN</dt><dd>{payment.iban}</dd></div>}
+            {(payment.abi || payment.cab || payment.bic) && <div className="payment-wide"><dt>Coordinate</dt><dd>{[payment.abi && `ABI ${payment.abi}`, payment.cab && `CAB ${payment.cab}`, payment.bic && `BIC ${payment.bic}`].filter(Boolean).join(" · ")}</dd></div>}
+            {payment.payment_code && <div><dt>Codice pagamento</dt><dd>{payment.payment_code}</dd></div>}
+            {(payment.payee_first_name || payment.payee_last_name) && <div><dt>Quietanzante</dt><dd>{[payment.payee_title, payment.payee_first_name, payment.payee_last_name].filter(Boolean).join(" ")}</dd></div>}
+            {payment.discount_cents !== null && <div><dt>Sconto anticipato</dt><dd>{euro(payment.discount_cents)}{payment.early_discount_due_date ? ` entro ${date(payment.early_discount_due_date)}` : ""}</dd></div>}
+            {payment.penalty_cents !== null && <div><dt>Penale ritardo</dt><dd>{euro(payment.penalty_cents)}{payment.penalty_due_date ? ` dal ${date(payment.penalty_due_date)}` : ""}</dd></div>}
+          </dl>
+        </article>)}</div> : <p className="invoice-payment-empty">L’XML importato non contiene dettagli di pagamento. Reimporta il file dopo aver eseguito la nuova migrazione.</p>}
+      </section>
       <section className="invoice-totals"><span>Imponibile <strong>{euro(invoice.taxable_cents)}</strong></span><span>IVA <strong>{euro(invoice.vat_cents)}</strong></span><span>Totale documento <strong>{euro(invoice.total_cents)}</strong></span></section>
       <form className="invoice-payment" onSubmit={(event) => { event.preventDefault(); onSave(new FormData(event.currentTarget)); }}>
         <input type="hidden" name="id" value={invoice.id} />

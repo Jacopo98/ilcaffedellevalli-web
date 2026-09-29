@@ -19,7 +19,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   let unreadNotifications = 0;
   if (profile.role === "admin") {
     const supabase = await createAuthClient();
-    const { count } = await supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("is_read", false);
+    const today = new Date().toISOString().slice(0, 10);
+    const { count } = await supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("is_read", false).or(`remind_on.is.null,remind_on.lte.${today}`);
     unreadNotifications = count ?? 0;
   }
 
