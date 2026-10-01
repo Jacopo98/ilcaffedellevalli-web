@@ -24,7 +24,7 @@ export async function createExpense(formData: FormData): Promise<ExpenseActionRe
   if (!parsed.success) return { ok: false, error: "Controlla i dati della spesa." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
   const isInvoice=formData.get("is_invoice")==="on",netCents=cents(value.amount),vatCents=isInvoice?Math.round(netCents*value.vatRate/100):0;
-  const { error } = await supabase.from("expenses").insert({ category_id: value.categoryId, description: value.description, supplier: value.supplier, invoice_number: isInvoice?value.invoiceNumber:null, is_invoice:isInvoice, accounting_label:value.accountingLabel, expense_date: value.expenseDate, due_date:null, paid_date:null, amount_net_cents:netCents, vat_cents:vatCents, payment_status:"due", payment_method:value.paymentMethod, recurrence:"none", is_estimate:false, notes:value.notes });
+  const { error } = await supabase.from("expenses").insert({ category_id: value.categoryId, description: value.description, supplier: value.supplier, invoice_number: isInvoice?value.invoiceNumber:null, is_invoice:isInvoice, accounting_label:value.accountingLabel, is_startup_cost:formData.get("is_startup_cost")==="on", expense_date: value.expenseDate, due_date:null, paid_date:null, amount_net_cents:netCents, vat_cents:vatCents, payment_status:"due", payment_method:value.paymentMethod, recurrence:"none", is_estimate:false, notes:value.notes });
   if (error) return { ok: false, error: "Impossibile creare la spesa." }; done(); return { ok: true };
 }
 
@@ -34,7 +34,7 @@ export async function updateExpense(formData: FormData): Promise<ExpenseActionRe
   if (!id.success || !parsed.success) return { ok: false, error: "Controlla i dati della spesa." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
   const isInvoice=formData.get("is_invoice")==="on",netCents=cents(value.amount),vatCents=isInvoice?Math.round(netCents*value.vatRate/100):0;
-  const { error } = await supabase.from("expenses").update({ category_id:value.categoryId,description:value.description,supplier:value.supplier,invoice_number:isInvoice?value.invoiceNumber:null,is_invoice:isInvoice,accounting_label:value.accountingLabel,expense_date:value.expenseDate,due_date:null,paid_date:null,amount_net_cents:netCents,vat_cents:vatCents,payment_status:"due",payment_method:value.paymentMethod,recurrence:"none",is_estimate:false,notes:value.notes }).eq("id", id.data);
+  const { error } = await supabase.from("expenses").update({ category_id:value.categoryId,description:value.description,supplier:value.supplier,invoice_number:isInvoice?value.invoiceNumber:null,is_invoice:isInvoice,accounting_label:value.accountingLabel,is_startup_cost:formData.get("is_startup_cost")==="on",expense_date:value.expenseDate,due_date:null,paid_date:null,amount_net_cents:netCents,vat_cents:vatCents,payment_status:"due",payment_method:value.paymentMethod,recurrence:"none",is_estimate:false,notes:value.notes }).eq("id", id.data);
   if (error) return { ok: false, error: "Impossibile aggiornare la spesa." }; done(); return { ok: true };
 }
 
@@ -44,7 +44,7 @@ export async function deleteExpense(formData: FormData): Promise<ExpenseActionRe
   if (error) return { ok: false, error: "Impossibile eliminare la spesa." }; done(); return { ok: true };
 }
 
-function categoryValues(formData: FormData) { return categorySchema.safeParse({ name: formData.get("name"), costType: formData.get("cost_type"), color: formData.get("color"), budget: formData.get("monthly_budget") }); }
+function categoryValues(formData: FormData) { const rawBudget=String(formData.get("monthly_budget")??"").trim();return categorySchema.safeParse({ name: formData.get("name"), costType: formData.get("cost_type"), color: formData.get("color"), budget: rawBudget?rawBudget.replace(",","."):0 }); }
 export async function createExpenseCategory(formData: FormData): Promise<ExpenseActionResult> {
   const parsed = categoryValues(formData); if (!parsed.success) return { ok: false, error: "Controlla i dati della categoria." };
   const { supabase } = await requireAdmin(); const { error } = await supabase.from("expense_categories").insert({ name: parsed.data.name, cost_type: parsed.data.costType, color: parsed.data.color, monthly_budget_cents: cents(parsed.data.budget), is_active: true });
@@ -98,6 +98,38 @@ export async function deleteDailyRevenue(formData: FormData): Promise<ExpenseAct
   const { error } = await supabase.from("daily_revenues").delete().eq("id", id.data);
   if (error) return { ok: false, error: "Impossibile eliminare l'incasso giornaliero." };
   done(); return { ok: true };
+}
+
+const contributionSchema = z.object({
+  id: z.union([z.literal(""), idSchema]).optional(),
+  date: z.iso.date(),
+  contributor: z.string().trim().min(1).max(120),
+  type: z.enum(["initial", "additional"]),
+  amount: revenueMoney.refine((value) => value > 0, "Inserisci un importo maggiore di zero."),
+  method: z.union([z.literal(""), z.enum(["bank_transfer", "cash", "other"])]).transform((value) => value || null),
+  reference: optional(160),
+  notes: optional(1000),
+});
+
+export async function saveCapitalContribution(formData: FormData): Promise<ExpenseActionResult> {
+  const parsed = contributionSchema.safeParse({ id: formData.get("id") ?? "", date: formData.get("contribution_date"), contributor: formData.get("contributor_name"), type: formData.get("contribution_type"), amount: formData.get("amount"), method: formData.get("payment_method") ?? "", reference: formData.get("reference") ?? "", notes: formData.get("notes") ?? "" });
+  if (!parsed.success) return { ok:false, error:"Controlla i dati del versamento." };
+  const { supabase } = await requireAdmin();
+  const value = parsed.data;
+  const payload = { contribution_date:value.date, contributor_name:value.contributor, contribution_type:value.type, amount_cents:cents(value.amount), payment_method:value.method, reference:value.reference, notes:value.notes };
+  const query = value.id ? supabase.from("capital_contributions").update(payload).eq("id", value.id) : supabase.from("capital_contributions").insert(payload);
+  const { error } = await query;
+  if (error) return { ok:false, error:"Impossibile salvare il versamento." };
+  done(); return { ok:true };
+}
+
+export async function deleteCapitalContribution(formData: FormData): Promise<ExpenseActionResult> {
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok:false, error:"Versamento non valido." };
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.from("capital_contributions").delete().eq("id", id.data);
+  if (error) return { ok:false, error:"Impossibile eliminare il versamento." };
+  done(); return { ok:true };
 }
 
 const planSchema = z.object({
