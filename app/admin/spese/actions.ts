@@ -64,7 +64,6 @@ const revenueSchema = z.object({
   lunchCoversCount: optionalRevenueCount,
   notes: optional(1000),
 }).superRefine((value, context) => {
-  if (value.pos > value.total) context.addIssue({ code: "custom", message: "Il POS non può superare la chiusura totale.", path: ["pos"] });
   const day = new Date(`${value.date}T12:00:00Z`).getUTCDay();
   if (day !== 0 && day !== 6 && value.lunchCoversCount === null) {
     context.addIssue({ code: "custom", message: "Inserisci il numero di coperti, anche 0 se non lo conosci.", path: ["lunchCoversCount"] });
@@ -87,7 +86,7 @@ export async function saveDailyRevenue(formData: FormData): Promise<ExpenseActio
     if (!category.success || !amount.success) return { ok: false, error: "Controlla categoria e importo delle spese inserite." };
     cashExpenses.push({ category: category.data, amount_cents: cents(amount.data) });
   }
-  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, cash_cents: cents(value.total - value.pos), pos_cents: cents(value.pos), other_cents: cents(value.drawerCount), refunds_cents: 0, receipt_count: null, issued_invoices_cents: cents(value.issuedInvoices), cash_expenses: cashExpenses, brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
+  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, register_total_cents: cents(value.total), cash_cents: cents(Math.max(0,value.total-value.pos)), pos_cents: cents(value.pos), other_cents: cents(value.drawerCount), refunds_cents: 0, receipt_count: null, issued_invoices_cents: cents(value.issuedInvoices), cash_expenses: cashExpenses, brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
   if (error) return { ok: false, error: "Impossibile salvare l'incasso giornaliero." }; done(); return { ok: true };
 }
 

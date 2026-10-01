@@ -1040,6 +1040,16 @@ button { cursor: pointer; }
 .fx-analysis-note { color: rgba(28,28,26,.48); font-size: .6rem; line-height: 1.5; }
 @media(max-width:720px){.fx-analysis-intro{align-items:flex-start;flex-direction:column}.fx-result-grid{grid-template-columns:1fr}.fx-combined-result{align-items:stretch;flex-direction:column}.fx-combined-equation{display:grid;grid-template-columns:1fr auto 1fr auto 1fr}.fx-combined-equation>strong{min-width:0;text-align:left}.fx-bank-card{grid-template-columns:auto 1fr}.fx-bank-formula{grid-column:1/-1;display:grid;grid-template-columns:1fr auto 1fr auto 1fr}.fx-bank-formula>span{min-width:0}.fx-bank-formula>strong{min-width:0;text-align:left}.expense-spending-summary{grid-template-columns:1fr 1fr}.expense-spending-total{grid-column:1/-1}.revenue-summary-four{grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem}.revenue-summary-four div,.revenue-summary-four div:last-child{grid-column:auto;padding:.65rem .5rem}.revenue-summary-four span{font-size:.46rem;line-height:1.25}.revenue-summary-four strong,.revenue-summary-four .register-total-card strong{font-size:clamp(.68rem,2.5vw,.9rem)}}
 @media(max-width:430px){.accounting-label-options{grid-template-columns:1fr}.fx-equation-x{grid-template-columns:1fr auto 1fr}.fx-equation-x .fx-value-details:last-child{grid-column:1/-1}.fx-equation-x i:nth-of-type(2){display:none}.expense-spending-summary{grid-template-columns:1fr}.expense-spending-total{grid-column:auto}.revenue-summary-four{grid-template-columns:repeat(4,minmax(0,1fr));gap:.28rem}.revenue-summary-four div,.revenue-summary-four div:last-child{grid-column:auto;padding:.55rem .32rem;border-radius:.65rem}.revenue-summary-four span{font-size:.4rem;letter-spacing:.02em}.revenue-summary-four strong,.revenue-summary-four .register-total-card strong{font-size:clamp(.58rem,2.8vw,.76rem)}}
+@media(max-width:600px){
+  .fx-combined-equation{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);width:100%;gap:.45rem}
+  .fx-combined-equation>i:nth-of-type(2){display:none}
+  .fx-combined-equation>strong{display:flex;grid-column:1/-1;align-items:center;justify-content:space-between;min-height:3rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.7rem;text-align:right}
+  .fx-combined-equation>strong::before{content:"Risultato";color:rgba(255,255,255,.5);font-family:var(--font-inter),sans-serif;font-size:.52rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+  .fx-bank-formula{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);width:100%;gap:.45rem}
+  .fx-bank-formula>i:nth-of-type(2){display:none}
+  .fx-bank-formula>strong{display:flex;grid-column:1/-1;align-items:center;justify-content:space-between;min-height:2.8rem;border-top:1px solid rgba(36,138,115,.16);padding-top:.65rem;text-align:right}
+  .fx-bank-formula>strong::before{content:"Disponibilità fiscale";color:rgba(28,28,26,.48);font-family:var(--font-inter),sans-serif;font-size:.5rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+}
 .service-metrics-panel { margin-top: 1rem; }
 .service-metrics-period { margin-top: .3rem; color: rgba(28,28,26,.45); font-size: .66rem; }
 .service-metrics-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; margin-top: 1.2rem; }
