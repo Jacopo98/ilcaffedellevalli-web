@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useMemo, useState, useTransition } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Plus, Sparkles, X } from "lucide-react";
 import { requestExtraHours, requestShiftChange } from "./actions";
 
 type Shift = { id:number;entry_type:string;shift_date:string;start_time:string;end_time:string;notes:string|null;approval_status:"pending"|"approved"|"rejected" };
@@ -20,6 +20,8 @@ const START_HOUR=4,END_HOUR=16,HOUR_HEIGHT=54;
 function addDays(value:string,days:number){const date=new Date(`${value}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
 function dateLabel(value:string){return new Intl.DateTimeFormat("it-IT",{day:"2-digit",month:"short",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`))}
 function minutes(value:string){const [hour,minute]=value.slice(0,5).split(":").map(Number);return hour*60+minute}
+function durationMinutes(start:string,end:string){const startMinutes=minutes(start),endMinutes=minutes(end);return endMinutes>=startMinutes?endMinutes-startMinutes:24*60-startMinutes+endMinutes}
+function hoursLabel(totalMinutes:number){const hours=Math.floor(totalMinutes/60),remainingMinutes=totalMinutes%60;return remainingMinutes?`${hours} h ${String(remainingMinutes).padStart(2,"0")} min`:`${hours} h`}
 function arrange(entries:CalendarEntry[]){const result:{entry:CalendarEntry;lane:number;laneCount:number}[]=[];let laneEnds:number[]=[],group:typeof result=[],groupEnd=-1;const finish=()=>{const count=Math.max(1,laneEnds.length);group.forEach(item=>item.laneCount=count)};[...entries].sort((a,b)=>minutes(a.start)-minutes(b.start)).forEach(entry=>{const start=minutes(entry.start);if(start>=groupEnd){finish();laneEnds=[];group=[]}let lane=laneEnds.findIndex(end=>end<=start);if(lane===-1){lane=laneEnds.length;laneEnds.push(minutes(entry.end))}else laneEnds[lane]=minutes(entry.end);const item={entry,lane,laneCount:1};result.push(item);group.push(item);groupEnd=Math.max(groupEnd,minutes(entry.end))});finish();return result}
 
 export function EmployeeShifts({name,color,weekStart,minWeek,shifts,requests}:{name:string;color:string;weekStart:string;minWeek:string;shifts:Shift[];requests:Request[]}){
@@ -31,6 +33,12 @@ export function EmployeeShifts({name,color,weekStart,minWeek,shifts,requests}:{n
     ...shifts.map(shift=>({id:`shift-${shift.id}`,entryType:shift.entry_type,date:shift.shift_date,start:shift.start_time,end:shift.end_time,request:false,shift,changePending:requests.some(request=>request.work_shift_id===shift.id)})),
     ...requests.map(request=>({id:`request-${request.id}`,entryType:"request",date:request.proposed_date,start:request.proposed_start_time,end:request.proposed_end_time,request:true,shift:null,changePending:false})),
   ],[shifts,requests]);
+  const hoursSummary=useMemo(()=>{
+    const baseMinutes=shifts.filter(shift=>shift.entry_type==="work").reduce((total,shift)=>total+durationMinutes(shift.start_time,shift.end_time),0);
+    const extraMinutes=shifts.filter(shift=>shift.entry_type==="extra").reduce((total,shift)=>total+durationMinutes(shift.start_time,shift.end_time),0);
+    const pendingExtraMinutes=requests.filter(request=>request.request_type==="add_extra").reduce((total,request)=>total+durationMinutes(request.proposed_start_time,request.proposed_end_time),0);
+    return {baseMinutes,extraMinutes,pendingExtraMinutes,totalMinutes:baseMinutes+extraMinutes};
+  },[shifts,requests]);
   function run(action:(data:FormData)=>Promise<{ok:boolean;error?:string}>,data:FormData,close:()=>void){setError("");startTransition(async()=>{const result=await action(data);if(!result.ok){setError(result.error??"Operazione non riuscita.");return}close();router.refresh()})}
 
   return <main className="admin-container employee-portal">
@@ -47,6 +55,11 @@ export function EmployeeShifts({name,color,weekStart,minWeek,shifts,requests}:{n
         {arranged.map(({entry,lane,laneCount})=>{const start=minutes(entry.start),end=minutes(entry.end),top=((start-START_HOUR*60)/60)*HOUR_HEIGHT,height=Math.max(34,((end-start)/60)*HOUR_HEIGHT),left=`calc(${lane/laneCount*100}% + .25rem)`,width=`calc(${100/laneCount}% - .5rem)`,entryColor=entry.request?COLORS.request:(COLORS[entry.entryType]||color);const style:CardStyle={top,height,left,width,borderColor:entryColor,background:`${entryColor}18`,"--mobile-left":`${((start-START_HOUR*60)/((END_HOUR-START_HOUR)*60))*100}%`,"--mobile-width":`${((end-start)/((END_HOUR-START_HOUR)*60))*100}%`,"--mobile-row":lane,"--screen-top":`${top}px`,"--screen-height":`${height}px`,"--screen-left":left,"--screen-width":width};const editable=Boolean(entry.shift&&entry.date>=today&&!entry.changePending);return <button type="button" key={entry.id} className={`shift-card shift-type-${entry.entryType}${laneCount>1?" shift-card-compact":""}${entry.request||entry.changePending?" employee-calendar-request":""}`} style={style} disabled={!editable} onClick={()=>entry.shift&&setEditing(entry.shift)} title={`${entry.start.slice(0,5)}–${entry.end.slice(0,5)}`}>{(entry.request||entry.entryType!=="work")&&<em>{entry.request?"DA APPROVARE":LABELS[entry.entryType]}</em>}<strong>{name}</strong><span>{entry.start.slice(0,5)}–{entry.end.slice(0,5)}</span>{entry.changePending&&!entry.request&&<small>Modifica richiesta</small>}</button>})}
       </div></article>})}</section>
     </div>
+    <section className="employee-hours-summary" aria-label="Riepilogo ore della settimana">
+      <div className="employee-hours-summary-title"><span><Clock3/></span><div><p className="admin-kicker">Riepilogo settimanale</p><h2>Le tue ore</h2><small>{dateLabel(weekStart)} – {dateLabel(addDays(weekStart,6))}</small></div></div>
+      <div className="employee-hours-total"><small>Totale pianificato</small><strong>{hoursLabel(hoursSummary.totalMinutes)}</strong></div>
+      <div className="employee-hours-breakdown"><span><small>Turni ordinari</small><strong>{hoursLabel(hoursSummary.baseMinutes)}</strong></span><span><small>Ore extra approvate</small><strong>{hoursLabel(hoursSummary.extraMinutes)}</strong></span>{hoursSummary.pendingExtraMinutes>0&&<span className="is-pending"><Sparkles/><small>Extra in approvazione</small><strong>+ {hoursLabel(hoursSummary.pendingExtraMinutes)}</strong></span>}</div>
+    </section>
     {extraOpen&&<RequestModal title="Aggiungi ore extra" pending={pending} onClose={()=>setExtraOpen(false)} onSubmit={data=>run(requestExtraHours,data,()=>setExtraOpen(false))}/>} 
     {editing&&<RequestModal title="Richiedi modifica turno" pending={pending} shift={editing} onClose={()=>setEditing(null)} onSubmit={data=>{data.set("shift_id",String(editing.id));run(requestShiftChange,data,()=>setEditing(null))}}/>}
   </main>
