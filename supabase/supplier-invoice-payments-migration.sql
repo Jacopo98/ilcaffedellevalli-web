@@ -83,3 +83,10 @@ with check ((select private.is_admin()));
 
 comment on table public.supplier_invoice_payments is
   'Dettagli e rate di pagamento estratti dai blocchi DatiPagamento della FatturaPA.';
+
+-- Le note di credito TD04/TD08 possono riportare ImportoPagamento negativo.
+alter table public.supplier_invoice_payments
+  drop constraint if exists supplier_invoice_payments_amount_cents_check;
+
+comment on column public.supplier_invoice_payments.amount_cents is
+  'Importo della rata con segno originale; può essere negativo per note di credito.';

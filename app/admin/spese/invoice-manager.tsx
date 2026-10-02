@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, FileUp, ListFilter, ReceiptText, Search, X } from "lucide-react";
-import { importSupplierInvoices, updateSupplierInvoice } from "./invoice-actions";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, FilePenLine, FileUp, ListFilter, ReceiptText, Search, X } from "lucide-react";
+import { createManualSupplierInvoice, importSupplierInvoices, updateSupplierInvoice } from "./invoice-actions";
 
 export type SupplierInvoice = {
   id: number;
@@ -86,6 +86,7 @@ const paymentTermsLabel = (code: string | null) => code === "TP01" ? "Pagamento 
 export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice[]; onBack: () => void }) {
   const router = useRouter();
   const [upload, setUpload] = useState(false);
+  const [manualEntry, setManualEntry] = useState(false);
   const [selected, setSelected] = useState<SupplierInvoice | null>(null);
   const [month, setMonth] = useState("all");
   const [search, setSearch] = useState("");
@@ -161,7 +162,10 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
         <h2>Archivio fatture</h2>
         <p>Ogni documento entra nelle spese F nel mese della sua data di emissione.</p>
       </div>
-      <button className="admin-action admin-action-primary admin-action-create" onClick={() => setUpload(true)}><FileUp size={17} /> Importa XML</button>
+      <div className="invoice-toolbar-actions">
+        <button className="admin-action admin-action-secondary invoice-manual-action" onClick={() => setManualEntry(true)}><FilePenLine size={17} /><span>Inserisci manualmente</span></button>
+        <button className="admin-action admin-action-primary admin-action-create" onClick={() => setUpload(true)}><FileUp size={17} /> Importa XML</button>
+      </div>
     </section>
 
     {(error || message) && <div className={`staff-alert ${message ? "invoice-success" : ""}`}>
@@ -244,8 +248,43 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
       </form>
     </section></div>}
 
+    {manualEntry && <ManualInvoiceModal pending={pending} onClose={() => setManualEntry(false)} onSave={(data) => run(createManualSupplierInvoice, data, () => setManualEntry(false))} />}
+
     {selected && <InvoiceDetail invoice={selected} pending={pending} onClose={() => setSelected(null)} onSave={(data) => run(updateSupplierInvoice, data, () => setSelected(null))} />}
   </>;
+}
+
+function ManualInvoiceModal({ pending, onClose, onSave }: { pending: boolean; onClose: () => void; onSave: (data: FormData) => void }) {
+  const [taxable, setTaxable] = useState("");
+  const [vatRate, setVatRate] = useState("22");
+  const taxableNumber = Number(taxable.replace(",", ".")) || 0;
+  const vatRateNumber = Number(vatRate.replace(",", ".")) || 0;
+  const total = taxableNumber * (1 + vatRateNumber / 100);
+
+  return <div className="admin-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="admin-modal admin-modal-wide manual-invoice-modal">
+      <button className="modal-close" aria-label="Chiudi" onClick={onClose}><X /></button>
+      <span className="invoice-upload-icon"><FilePenLine /></span>
+      <p className="admin-kicker">Caso eccezionale</p>
+      <h2>Inserisci fattura manualmente</h2>
+      <p className="employee-extra-intro">Usa questa funzione solo quando non puoi recuperare il file XML. La fattura sarà registrata tra le spese F.</p>
+      <form className="admin-edit-grid" onSubmit={(event) => { event.preventDefault(); onSave(new FormData(event.currentTarget)); }}>
+        <label className="admin-field"><span>Tipo documento</span><select name="document_type" defaultValue="TD01"><option value="TD01">Fattura</option><option value="TD04">Nota di credito</option></select></label>
+        <label className="admin-field"><span>Numero fattura</span><input name="invoice_number" required /></label>
+        <label className="admin-field admin-field-wide"><span>Fornitore</span><input name="supplier_name" required /></label>
+        <label className="admin-field"><span>Partita IVA fornitore</span><input name="supplier_vat_number" inputMode="numeric" required /></label>
+        <label className="admin-field"><span>Data emissione</span><input name="issue_date" type="date" required /></label>
+        <label className="admin-field"><span>Imponibile (€)</span><input name="taxable_amount" type="text" inputMode="decimal" autoComplete="off" placeholder="0,00" value={taxable} onChange={(event) => setTaxable(event.target.value)} required /></label>
+        <label className="admin-field"><span>IVA (%)</span><input name="vat_rate" type="text" inputMode="decimal" autoComplete="off" value={vatRate} onChange={(event) => setVatRate(event.target.value)} required /></label>
+        <label className="admin-field"><span>Totale documento</span><input className="revenue-calculated-input" value={euro(Math.round(total * 100))} readOnly /></label>
+        <label className="admin-field"><span>Scadenza <small>(facoltativa)</small></span><input name="due_date" type="date" /></label>
+        <label className="admin-field"><span>Modalità di pagamento</span><select name="payment_method" defaultValue=""><option value="">Non indicata</option>{Object.entries(PAYMENT_METHODS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+        <label className="admin-field"><span>Stato</span><select name="payment_status" defaultValue="unpaid"><option value="unpaid">Non pagata</option><option value="paid">Pagata</option></select></label>
+        <label className="admin-field admin-field-wide"><span>Descrizione <small>(facoltativa)</small></span><textarea name="description" rows={3} placeholder="Breve descrizione della fornitura" /></label>
+        <div className="modal-actions admin-field-wide"><button type="button" className="admin-action admin-action-secondary" onClick={onClose}>Annulla</button><button className="admin-action admin-action-primary" disabled={pending}>{pending ? "Registrazione…" : "Registra fattura"}</button></div>
+      </form>
+    </section>
+  </div>;
 }
 
 function InvoiceDetail({ invoice, pending, onClose, onSave }: { invoice: SupplierInvoice; pending: boolean; onClose: () => void; onSave: (data: FormData) => void }) {
