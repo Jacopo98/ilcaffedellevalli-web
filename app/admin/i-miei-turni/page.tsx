@@ -8,10 +8,10 @@ function addDays(value:string,days:number){const date=new Date(`${value}T12:00:0
 
 export default async function MyShiftsPage({searchParams}:{searchParams:Promise<{week?:string}>}){
   const profile=await getCurrentProfile(); if(!profile)redirect("/area-riservata"); if(profile.role!=="employee")redirect("/admin/dipendenti");
-  const current=monday(); const minWeek=addDays(current,-7); const requested=monday((await searchParams).week); const weekStart=requested<minWeek?minWeek:requested;
+  const weekStart=monday((await searchParams).week);
   if(!profile.employeeId)return <main className="admin-container employee-portal"><section className="employee-link-missing"><p className="admin-kicker">Associazione richiesta</p><h1>Account non collegato</h1><p>Chiedi all’amministratore di associare il tuo account alla relativa anagrafica dipendente.</p></section></main>;
   const supabase=await createAuthClient();
   const [{data:employee},{data:shifts,error},{data:requests,error:requestsError}]=await Promise.all([supabase.from("employees").select("first_name,last_name,color").eq("id",profile.employeeId).single(),supabase.from("work_shifts").select("id,entry_type,shift_date,start_time,end_time,notes,approval_status").eq("employee_id",profile.employeeId).gte("shift_date",weekStart).lte("shift_date",addDays(weekStart,6)).order("shift_date").order("start_time"),supabase.from("shift_change_requests").select("id,work_shift_id,request_type,proposed_date,proposed_start_time,proposed_end_time,status").eq("employee_id",profile.employeeId).eq("status","pending").gte("proposed_date",weekStart).lte("proposed_date",addDays(weekStart,6))]);
   if(error||requestsError)throw new Error("Impossibile caricare turni e richieste. Esegui employee-shift-requests-migration.sql su Supabase.");
-  return <EmployeeShifts name={employee?.first_name??profile.displayName??""} color={employee?.color??"#E8650A"} weekStart={weekStart} minWeek={minWeek} shifts={shifts??[]} requests={requests??[]}/>;
+  return <EmployeeShifts name={employee?.first_name??profile.displayName??""} color={employee?.color??"#E8650A"} weekStart={weekStart} shifts={shifts??[]} requests={requests??[]}/>;
 }

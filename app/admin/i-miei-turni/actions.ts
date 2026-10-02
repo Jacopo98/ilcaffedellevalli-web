@@ -35,10 +35,11 @@ export async function requestShiftChange(formData: FormData): Promise<ExtraReque
   const shiftId=z.coerce.number().int().positive().safeParse(formData.get("shift_id"));
   const parsed=schema.safeParse({date:formData.get("shift_date"),start:formData.get("start_time"),end:formData.get("end_time"),notes:formData.get("notes")??""});
   if(!shiftId.success||!parsed.success)return{ok:false,error:parsed.success?"Turno non valido.":parsed.error.issues[0]?.message};
-  const today=new Date().toISOString().slice(0,10); if(parsed.data.date<today)return{ok:false,error:"Non puoi richiedere modifiche per una data passata."};
   const supabase=await createAuthClient();
   const {data:shift,error:shiftError}=await supabase.from("work_shifts").select("id,shift_date,start_time,end_time").eq("id",shiftId.data).eq("employee_id",profile.employeeId).single();
   if(shiftError||!shift)return{ok:false,error:"Turno non disponibile."};
+  const cutoff=new Date();cutoff.setUTCHours(0,0,0,0);const cutoffDay=cutoff.getUTCDate();cutoff.setUTCDate(1);cutoff.setUTCMonth(cutoff.getUTCMonth()-2);cutoff.setUTCDate(Math.min(cutoffDay,new Date(Date.UTC(cutoff.getUTCFullYear(),cutoff.getUTCMonth()+1,0)).getUTCDate()));const cutoffDate=cutoff.toISOString().slice(0,10);
+  if(shift.shift_date<cutoffDate||parsed.data.date<cutoffDate)return{ok:false,error:"Puoi proporre modifiche soltanto per turni degli ultimi due mesi."};
   const {error}=await supabase.from("shift_change_requests").insert({employee_id:profile.employeeId,work_shift_id:shift.id,request_type:"change_shift",original_date:shift.shift_date,original_start_time:shift.start_time,original_end_time:shift.end_time,proposed_date:parsed.data.date,proposed_start_time:parsed.data.start,proposed_end_time:parsed.data.end,notes:parsed.data.notes,status:"pending"});
   if(error)return{ok:false,error:error.code==="23505"?"Esiste già una modifica in attesa per questo turno.":"Impossibile inviare la modifica."};
   revalidatePath("/admin/i-miei-turni");revalidatePath("/admin/dipendenti");return{ok:true};
