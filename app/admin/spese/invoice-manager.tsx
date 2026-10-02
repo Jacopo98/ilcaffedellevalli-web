@@ -239,7 +239,7 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
       <p className="admin-kicker">Importazione FatturaPA</p><h2>Carica file XML</h2>
       <p className="employee-extra-intro">Puoi selezionare fino a 20 file. Allegati PDF e XML originale non vengono archiviati.</p>
       <form onSubmit={(event) => { event.preventDefault(); run(importSupplierInvoices, new FormData(event.currentTarget), () => setUpload(false)); }}>
-        <label className="invoice-dropzone"><input name="invoice_files" type="file" accept=".xml,text/xml,application/xml" multiple required /><ReceiptText /><strong>Seleziona le fatture XML</strong><small>Massimo 8 MB per file, 10 MB complessivi</small></label>
+        <label className="invoice-dropzone"><input name="invoice_files" type="file" accept=".xml,text/xml,application/xml" multiple required /><ReceiptText /><strong>Seleziona le fatture XML</strong><small>Massimo 20 file XML, fino a 8 MB per singolo file</small></label>
         <div className="modal-actions"><button type="button" className="admin-action admin-action-secondary" onClick={() => setUpload(false)}>Annulla</button><button className="admin-action admin-action-primary" disabled={pending}>{pending ? "Importazione…" : "Importa fatture"}</button></div>
       </form>
     </section></div>}
