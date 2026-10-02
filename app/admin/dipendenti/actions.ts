@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { createSchedulePdf } from "./schedule-pdf";
 
 export type EmployeeActionResult = { ok: boolean; error?: string; message?: string };
 
@@ -232,12 +231,13 @@ export async function clearWeek(formData: FormData): Promise<EmployeeActionResul
 const safeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character]!);
 const mailEntryLabels: Record<string, string> = { work: "Turno", extra: "Extra", rol: "ROL", holiday: "Ferie", sick: "Malattia" };
 
-export async function sendWeeklyScheduleEmails(formData: FormData): Promise<EmployeeActionResult> {
+export async function sendWeeklyScheduleEmail(formData: FormData): Promise<EmployeeActionResult> {
   const parsed = z.object({
     week: dateSchema,
-    employeeIds: z.string().transform((value) => value.split(",").filter(Boolean).map(Number)).refine((values) => values.length > 0 && values.length <= 50 && values.every((value) => Number.isInteger(value) && value > 0)),
-  }).safeParse({ week: formData.get("week"), employeeIds: formData.get("employee_ids") });
-  if (!parsed.success) return { ok: false, error: "Seleziona almeno un destinatario valido." };
+    employeeId: idSchema,
+    pdfBase64: z.string().min(100).max(9_000_000),
+  }).safeParse({ week: formData.get("week"), employeeId: formData.get("employee_id"), pdfBase64: formData.get("pdf_base64") });
+  if (!parsed.success) return { ok: false, error: "Destinatario o allegato PDF non valido." };
   const missingEmailVariables = [
     !process.env.RESEND_API_KEY && "RESEND_API_KEY",
     !process.env.REMINDER_EMAIL_FROM && "REMINDER_EMAIL_FROM",
@@ -247,38 +247,31 @@ export async function sendWeeklyScheduleEmails(formData: FormData): Promise<Empl
   const { supabase } = await requireAdmin();
   const weekEnd = addDays(parsed.data.week, 6);
   const [employeesResult, shiftsResult, adminsResult] = await Promise.all([
-    supabase.from("employees").select("id,first_name,last_name,email,color").in("id", parsed.data.employeeIds),
+    supabase.from("employees").select("id,first_name,last_name,email").eq("id", parsed.data.employeeId).maybeSingle(),
     supabase.from("work_shifts").select("employee_id,entry_type,shift_date,start_time,end_time,break_minutes").eq("approval_status", "approved").gte("shift_date", parsed.data.week).lte("shift_date", weekEnd).order("shift_date").order("start_time"),
     supabase.from("profiles").select("email,employee_id").eq("role", "admin"),
   ]);
   if (employeesResult.error || shiftsResult.error || adminsResult.error) return { ok: false, error: "Impossibile preparare i calendari da inviare." };
-
+  const employee = employeesResult.data;
+  if (!employee?.email) return { ok: false, error: "Il dipendente selezionato non ha un indirizzo email." };
   const allShifts = shiftsResult.data ?? [];
-  const allEmployeeIds = [...new Set(allShifts.map((shift) => shift.employee_id))];
+  if (!allShifts.some((shift) => shift.employee_id === employee.id)) return { ok: false, error: `${employee.first_name} non ha turni approvati nella settimana.` };
+  const allEmployeeIds = [...new Set(allShifts.map((shift) => shift.employee_id))], email = employee.email.trim();
   const { data: allScheduledEmployees, error: allEmployeesError } = allEmployeeIds.length
-    ? await supabase.from("employees").select("id,first_name,last_name,color").in("id", allEmployeeIds)
+    ? await supabase.from("employees").select("id,first_name,last_name").in("id", allEmployeeIds)
     : { data: [], error: null };
   if (allEmployeesError) return { ok: false, error: "Impossibile preparare il calendario completo." };
-
   const adminEmails = new Set((adminsResult.data ?? []).map((profile) => profile.email?.trim().toLowerCase()).filter(Boolean));
   const adminEmployeeIds = new Set((adminsResult.data ?? []).map((profile) => profile.employee_id).filter((value): value is number => typeof value === "number"));
-  const recipients = (employeesResult.data ?? []).filter((employee) => employee.email && allShifts.some((shift) => shift.employee_id === employee.id));
-  if (!recipients.length) return { ok: false, error: "I destinatari scelti non hanno email o turni approvati nella settimana." };
-
-  let sent = 0;
-  const failures: string[] = [];
-  for (const employee of recipients) {
-    const email = employee.email!.trim();
-    const isAdmin = adminEmployeeIds.has(employee.id) || adminEmails.has(email.toLowerCase());
-    const recipientShifts = isAdmin ? allShifts : allShifts.filter((shift) => shift.employee_id === employee.id);
-    const pdfEmployees = isAdmin ? (allScheduledEmployees ?? []) : [{ id: employee.id, first_name: employee.first_name, last_name: employee.last_name, color: employee.color }];
-    const pdf = await createSchedulePdf({ employees: pdfEmployees, shifts: recipientShifts, weekStart: parsed.data.week, includeAll: isAdmin });
-    const recap = pdfEmployees.filter((scheduledEmployee) => recipientShifts.some((shift) => shift.employee_id === scheduledEmployee.id)).map((scheduledEmployee) => {
+  const isAdmin = adminEmployeeIds.has(employee.id) || adminEmails.has(email.toLowerCase());
+  const recipientShifts = isAdmin ? allShifts : allShifts.filter((shift) => shift.employee_id === employee.id);
+  const recapEmployees = isAdmin ? (allScheduledEmployees ?? []) : [{ id: employee.id, first_name: employee.first_name, last_name: employee.last_name }];
+  const recap = recapEmployees.filter((scheduledEmployee) => recipientShifts.some((shift) => shift.employee_id === scheduledEmployee.id)).map((scheduledEmployee) => {
       const employeeShifts = recipientShifts.filter((shift) => shift.employee_id === scheduledEmployee.id);
       const rows = employeeShifts.map((shift) => `<li style="margin-bottom:6px">${safeHtml(new Date(`${shift.shift_date}T12:00:00Z`).toLocaleDateString("it-IT", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" }))} · ${safeHtml(shift.start_time.slice(0, 5))}–${safeHtml(shift.end_time.slice(0, 5))} · ${safeHtml(mailEntryLabels[shift.entry_type] ?? shift.entry_type)}</li>`).join("");
       return `<section style="margin:20px 0"><h3 style="margin:0 0 8px;color:#1c1c1a">${safeHtml(`${scheduledEmployee.first_name} ${scheduledEmployee.last_name}`.trim())}:</h3><ul style="margin:0;padding-left:20px">${rows}</ul></section>`;
     }).join("");
-    const response = await fetch("https://api.resend.com/emails", {
+  const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -286,16 +279,9 @@ export async function sendWeeklyScheduleEmails(formData: FormData): Promise<Empl
         to: [email],
         subject: `Turni della settimana · ${new Date(`${parsed.data.week}T12:00:00Z`).toLocaleDateString("it-IT")}`,
         html: `<div style="font-family:Arial,sans-serif;color:#1c1c1a;line-height:1.5;max-width:680px"><p style="color:#e8650a;font-size:12px;font-weight:700;letter-spacing:2px">ORGANIZZAZIONE</p><h1 style="margin-top:0">Schedulazione turni</h1><p>Ciao <strong>${safeHtml(employee.first_name)}</strong>,</p><p>${isAdmin ? "in qualità di amministratore trovi il calendario completo della settimana" : "ecco il riepilogo dei tuoi turni per la settimana"} dal ${safeHtml(new Date(`${parsed.data.week}T12:00:00Z`).toLocaleDateString("it-IT"))} al ${safeHtml(new Date(`${weekEnd}T12:00:00Z`).toLocaleDateString("it-IT"))}.</p>${recap}<p>In allegato trovi lo stesso PDF disponibile dalla funzione Stampa / PDF ${isAdmin ? "con tutti i turni" : "personale"}.</p><p style="margin-top:28px;color:#777;font-size:12px">Il Caffè delle Valli</p></div>`,
-        attachments: [{ filename: `turni-${parsed.data.week}-${isAdmin ? "completo" : employee.first_name.toLowerCase()}.pdf`, content: Buffer.from(pdf).toString("base64") }],
+        attachments: [{ filename: `turni-${parsed.data.week}-${isAdmin ? "completo" : employee.first_name.toLowerCase()}.pdf`, content: parsed.data.pdfBase64 }],
       }),
     });
-    if (response.ok) sent++;
-    else {
-      const payload = await response.json().catch(() => null) as { message?: string } | null;
-      failures.push(`${employee.first_name}: ${payload?.message ?? `errore ${response.status}`}`);
-    }
-  }
-
-  if (!sent) return { ok: false, error: `Nessuna email inviata. ${failures.join(" · ")}` };
-  return { ok: failures.length === 0, message: `Calendario inviato a ${sent} ${sent === 1 ? "destinatario" : "destinatari"}.`, error: failures.length ? `Invio parziale: ${failures.join(" · ")}` : undefined };
+  if (!response.ok) { const payload = await response.json().catch(() => null) as { message?: string } | null; return { ok: false, error: `${employee.first_name}: ${payload?.message ?? `errore ${response.status}`}` }; }
+  return { ok: true, message: `Calendario inviato a ${employee.first_name}.` };
 }
