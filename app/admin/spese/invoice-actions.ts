@@ -111,7 +111,11 @@ export async function importSupplierInvoices(formData: FormData): Promise<Invoic
         if (deleteError) return { ok: false, error: "Esegui supplier-invoice-payments-migration.sql prima di reimportare le fatture." };
         if (payments.length) {
           const { error: paymentError } = await supabase.from("supplier_invoice_payments").insert(payments.map((row) => ({ ...row, invoice_id: existing.id })));
-          if (paymentError) return { ok: false, error: `${file.name}: impossibile salvare i dettagli di pagamento.` };
+          if (paymentError) {
+            console.error("Supplier invoice payment update failed", { file: file.name, code: paymentError.code, message: paymentError.message });
+            const schemaError = paymentError.code === "42P01" || paymentError.code === "42703";
+            return { ok: false, error: schemaError ? `${file.name}: struttura dei pagamenti incompleta. Riesegui supplier-invoice-payments-migration.sql.` : `${file.name}: impossibile salvare i dettagli di pagamento (codice ${paymentError.code || "sconosciuto"}).` };
+          }
         }
         const dueDate = existing.due_date ?? dueDates.at(-1) ?? null;
         await supabase.from("supplier_invoices").update({ payment_method: primaryMethod, due_date: dueDate }).eq("id", existing.id);
@@ -145,7 +149,11 @@ export async function importSupplierInvoices(formData: FormData): Promise<Invoic
       if (vatRows.length) await supabase.from("supplier_invoice_vat_summaries").insert(vatRows.map((row) => ({ invoice_id: invoice.id, vat_rate: text(row.AliquotaIVA) ? numberValue(row.AliquotaIVA) : null, taxable_cents: cents(row.ImponibileImporto), vat_cents: cents(row.Imposta), nature: text(row.Natura) || null })));
       if (payments.length) {
         const { error: paymentError } = await supabase.from("supplier_invoice_payments").insert(payments.map((row) => ({ ...row, invoice_id: invoice.id })));
-        if (paymentError) return { ok: false, error: `${file.name}: fattura salvata, ma dettagli di pagamento non registrati. Esegui supplier-invoice-payments-migration.sql.` };
+        if (paymentError) {
+          console.error("Supplier invoice payment insert failed", { file: file.name, code: paymentError.code, message: paymentError.message });
+          const schemaError = paymentError.code === "42P01" || paymentError.code === "42703";
+          return { ok: false, error: schemaError ? `${file.name}: fattura salvata, ma struttura dei pagamenti incompleta. Riesegui supplier-invoice-payments-migration.sql.` : `${file.name}: fattura salvata, ma dettagli di pagamento non registrati (codice ${paymentError.code || "sconosciuto"}).` };
+        }
       }
       imported++;
     }

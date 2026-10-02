@@ -1,7 +1,7 @@
 -- Esegui una sola volta dopo supplier-invoices-migration.sql.
 -- Conserva tutti i dettagli di pagamento presenti nella FatturaPA, incluse eventuali rate.
 
-create table public.supplier_invoice_payments (
+create table if not exists public.supplier_invoice_payments (
   id bigint generated always as identity primary key,
   invoice_id bigint not null references public.supplier_invoices(id) on delete cascade,
   payment_group_number integer not null default 1,
@@ -32,16 +32,47 @@ create table public.supplier_invoice_payments (
   unique (invoice_id, payment_group_number, installment_number)
 );
 
-create index supplier_invoice_payments_invoice_idx
+-- Completa in sicurezza anche una tabella creata con una versione precedente.
+alter table public.supplier_invoice_payments
+  add column if not exists payment_group_number integer not null default 1,
+  add column if not exists installment_number integer not null default 1,
+  add column if not exists payment_terms text,
+  add column if not exists method_code text,
+  add column if not exists due_date date,
+  add column if not exists reference_date date,
+  add column if not exists payment_days integer,
+  add column if not exists amount_cents integer,
+  add column if not exists beneficiary text,
+  add column if not exists bank_name text,
+  add column if not exists iban text,
+  add column if not exists abi text,
+  add column if not exists cab text,
+  add column if not exists bic text,
+  add column if not exists postal_office_code text,
+  add column if not exists payee_first_name text,
+  add column if not exists payee_last_name text,
+  add column if not exists payee_tax_code text,
+  add column if not exists payee_title text,
+  add column if not exists payment_code text,
+  add column if not exists discount_cents integer,
+  add column if not exists early_discount_due_date date,
+  add column if not exists penalty_cents integer,
+  add column if not exists penalty_due_date date,
+  add column if not exists created_at timestamptz not null default now();
+
+create index if not exists supplier_invoice_payments_invoice_idx
   on public.supplier_invoice_payments (invoice_id, due_date);
 
-create index supplier_invoice_payments_method_idx
+create index if not exists supplier_invoice_payments_method_idx
   on public.supplier_invoice_payments (method_code);
 
 alter table public.supplier_invoice_payments enable row level security;
 
 grant select, insert, update, delete on public.supplier_invoice_payments to authenticated;
 grant usage, select on public.supplier_invoice_payments_id_seq to authenticated;
+
+drop policy if exists "Admins manage supplier invoice payments"
+on public.supplier_invoice_payments;
 
 create policy "Admins manage supplier invoice payments"
 on public.supplier_invoice_payments
