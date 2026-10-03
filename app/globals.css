@@ -1250,6 +1250,72 @@ input[type=number]{appearance:textfield;-moz-appearance:textfield}input[type=num
 .employee-hours-breakdown{grid-column:1/-1;display:flex;align-items:center;gap:.55rem;padding-top:.8rem;border-top:1px solid rgba(28,28,26,.07)}.employee-hours-breakdown>span{display:grid;grid-template-columns:auto auto;gap:.05rem .5rem;align-items:center;border-radius:.75rem;padding:.55rem .75rem;background:#f7f5f2}.employee-hours-breakdown small{color:rgba(28,28,26,.48);font-size:.52rem}.employee-hours-breakdown strong{font-size:.7rem}.employee-hours-breakdown .is-pending{grid-template-columns:auto 1fr auto;margin-left:auto;background:#f2ebff;color:#6d28d9}.employee-hours-breakdown .is-pending svg{grid-row:1;width:.85rem}.employee-hours-breakdown .is-pending small{color:#7c3aed}
 @media(max-width:700px){.employee-hours-summary{grid-template-columns:1fr;padding:1rem}.employee-hours-total{width:100%;text-align:left}.employee-hours-breakdown{display:grid;grid-template-columns:1fr 1fr;padding-top:.7rem}.employee-hours-breakdown>span{grid-template-columns:1fr}.employee-hours-breakdown .is-pending{grid-column:1/-1;grid-template-columns:auto 1fr auto;margin-left:0}}
 
+/* Su smartphone le proposte devono mantenere visibili stato, dipendente e orario. */
+@media(max-width:700px){
+  .shift-card.shift-type-request,
+  .shift-card.shift-type-request.shift-card-compact{
+    display:flex!important;
+    height:2.75rem!important;
+    min-height:2.75rem!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+    gap:.08rem!important;
+    overflow:hidden!important;
+    padding:.22rem 1rem .22rem .45rem!important;
+  }
+  .shift-card.shift-type-request em,
+  .shift-card.shift-type-request.shift-card-compact em{
+    position:static!important;
+    display:block!important;
+    order:0!important;
+    width:100%!important;
+    max-width:100%!important;
+    max-height:none!important;
+    margin:0!important;
+    overflow:hidden!important;
+    font-size:.38rem!important;
+    line-height:1!important;
+    writing-mode:horizontal-tb!important;
+    text-orientation:mixed!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  .shift-card.shift-type-request strong,
+  .shift-card.shift-type-request.shift-card-compact strong{
+    display:block!important;
+    order:1!important;
+    width:100%!important;
+    max-width:100%!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    font-size:.58rem!important;
+    line-height:1.05!important;
+    writing-mode:horizontal-tb!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  .shift-card.shift-type-request span,
+  .shift-card.shift-type-request.shift-card-compact span{
+    display:block!important;
+    order:2!important;
+    margin:0!important;
+    overflow:hidden!important;
+    font-size:.46rem!important;
+    line-height:1!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  .shift-card.shift-type-request::after,
+  .shift-card.shift-type-request.shift-card-compact::after{
+    top:.35rem!important;
+    right:.35rem!important;
+    bottom:auto!important;
+    left:auto!important;
+    transform:none!important;
+  }
+}
+
 /* Replica su canvas l'impaginazione usata da Stampa / PDF. */
 .staff-page.schedule-capture-mode{width:1120px!important;max-width:none!important;padding:0!important;background:#fff!important}
 .schedule-capture-mode .staff-topbar,.schedule-capture-mode .staff-heading,.schedule-capture-mode .extra-approval-panel,.schedule-capture-mode .calendar-request-strip,.schedule-capture-mode .schedule-actions,.schedule-capture-mode .share-filter,.schedule-capture-mode .payroll-export,.schedule-capture-mode .admin-modal-backdrop{display:none!important}
