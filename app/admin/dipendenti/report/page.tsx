@@ -31,7 +31,7 @@ export default async function PayrollReportPage({ searchParams }: { searchParams
   const employeeIds = employees.map((employee) => employee.id);
   let shifts: Shift[] = [];
   if (employeeIds.length) {
-    const result = await context.supabase.from("work_shifts").select("id, employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes").eq("approval_status","approved").in("employee_id", employeeIds).gte("shift_date", range.start).lte("shift_date", range.end).order("shift_date").order("start_time");
+    const result = await context.supabase.from("work_shifts").select("id, employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes").eq("approval_status","approved").neq("entry_type","extra").in("employee_id", employeeIds).gte("shift_date", range.start).lte("shift_date", range.end).order("shift_date").order("start_time");
     if (result.error) throw new Error("Impossibile caricare i turni mensili.");
     shifts = (result.data ?? []) as Shift[];
   }
