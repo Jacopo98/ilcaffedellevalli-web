@@ -14,7 +14,7 @@ type CardStyle = CSSProperties & { "--mobile-left":string;"--mobile-width":strin
 
 const DAYS=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
 const LABELS:Record<string,string>={work:"",extra:"EXTRA",rol:"ROL",holiday:"Ferie",sick:"Malattia",request:"DA APPROVARE"};
-const COLORS:Record<string,string>={extra:"#E8650A",rol:"#3978C5",holiday:"#248A73",sick:"#D94F70",request:"#7C3AED"};
+const COLORS:Record<string,string>={extra:"",rol:"#3978C5",holiday:"#248A73",sick:"#D94F70",request:"#7C3AED"};
 const START_HOUR=4,END_HOUR=16,HOUR_HEIGHT=54;
 
 function addDays(value:string,days:number){const date=new Date(`${value}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
