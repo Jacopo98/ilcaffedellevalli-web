@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 export type ExpenseActionResult = { ok: boolean; error?: string };
 const idSchema = z.coerce.number().int().positive();
 const optional = (max: number) => z.string().trim().max(max).transform((value) => value || null);
-const categorySchema = z.object({ name: z.string().trim().min(1).max(80), costType: z.enum(["fixed", "variable"]), color: z.string().regex(/^#[0-9a-fA-F]{6}$/), budget: z.coerce.number().min(0).max(1000000) });
+const categorySchema = z.object({ name: z.string().trim().min(1).max(80), color: z.string().regex(/^#[0-9a-fA-F]{6}$/), budget: z.coerce.number().min(0).max(1000000) });
 const expenseSchema = z.object({
   categoryId: idSchema, description: z.string().trim().min(1).max(160), supplier: optional(120), invoiceNumber: optional(80), expenseDate: z.iso.date(),
   amount: z.coerce.number().min(0).max(10000000), vatRate: z.coerce.number().min(0).max(100),
@@ -44,15 +44,15 @@ export async function deleteExpense(formData: FormData): Promise<ExpenseActionRe
   if (error) return { ok: false, error: "Impossibile eliminare la spesa." }; done(); return { ok: true };
 }
 
-function categoryValues(formData: FormData) { const rawBudget=String(formData.get("monthly_budget")??"").trim();return categorySchema.safeParse({ name: formData.get("name"), costType: formData.get("cost_type"), color: formData.get("color"), budget: rawBudget?rawBudget.replace(",","."):0 }); }
+function categoryValues(formData: FormData) { const rawBudget=String(formData.get("monthly_budget")??"").trim();return categorySchema.safeParse({ name: formData.get("name"), color: formData.get("color"), budget: rawBudget?rawBudget.replace(",","."):0 }); }
 export async function createExpenseCategory(formData: FormData): Promise<ExpenseActionResult> {
   const parsed = categoryValues(formData); if (!parsed.success) return { ok: false, error: "Controlla i dati della categoria." };
-  const { supabase } = await requireAdmin(); const { error } = await supabase.from("expense_categories").insert({ name: parsed.data.name, cost_type: parsed.data.costType, color: parsed.data.color, monthly_budget_cents: cents(parsed.data.budget), is_active: true });
+  const { supabase } = await requireAdmin(); const { error } = await supabase.from("expense_categories").insert({ name: parsed.data.name, cost_type: "variable", color: parsed.data.color, monthly_budget_cents: cents(parsed.data.budget), is_active: true });
   if (error) return { ok: false, error: error.code === "23505" ? "Categoria già presente." : "Impossibile creare la categoria." }; done(); return { ok: true };
 }
 export async function updateExpenseCategory(formData: FormData): Promise<ExpenseActionResult> {
   const id = idSchema.safeParse(formData.get("id")); const parsed = categoryValues(formData); if (!id.success || !parsed.success) return { ok: false, error: "Controlla i dati della categoria." };
-  const { supabase } = await requireAdmin(); const { error } = await supabase.from("expense_categories").update({ name: parsed.data.name, cost_type: parsed.data.costType, color: parsed.data.color, monthly_budget_cents: cents(parsed.data.budget), is_active: formData.get("is_active") === "on" }).eq("id", id.data);
+  const { supabase } = await requireAdmin(); const { error } = await supabase.from("expense_categories").update({ name: parsed.data.name, color: parsed.data.color, monthly_budget_cents: cents(parsed.data.budget), is_active: formData.get("is_active") === "on" }).eq("id", id.data);
   if (error) return { ok: false, error: "Impossibile aggiornare la categoria." }; done(); return { ok: true };
 }
 

@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   try {
     const { supabase } = await requireAdmin();
     const month = validMonth(request.nextUrl.searchParams.get("month"));
+    const includeExtra = request.nextUrl.searchParams.get("include_extra") === "1";
     const selected = ids(request.nextUrl.searchParams.get("employees"));
     const [year, monthNumber] = month.split("-").map(Number);
     const end = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
@@ -18,7 +19,9 @@ export async function GET(request: NextRequest) {
     const { data: employees, error: employeeError } = await employeeQuery;
     if (employeeError) throw employeeError;
     const employeeIds = (employees ?? []).map((employee) => employee.id);
-    const { data: shifts, error: shiftError } = employeeIds.length ? await supabase.from("work_shifts").select("employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes").eq("approval_status","approved").neq("entry_type","extra").in("employee_id", employeeIds).gte("shift_date", `${month}-01`).lte("shift_date", end).order("shift_date").order("start_time") : { data: [], error: null };
+    let shiftsQuery = supabase.from("work_shifts").select("employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes").eq("approval_status","approved").in("employee_id", employeeIds).gte("shift_date", `${month}-01`).lte("shift_date", end);
+    if (!includeExtra) shiftsQuery = shiftsQuery.neq("entry_type","extra");
+    const { data: shifts, error: shiftError } = employeeIds.length ? await shiftsQuery.order("shift_date").order("start_time") : { data: [], error: null };
     if (shiftError) throw shiftError;
     const employeeMap = new Map((employees ?? []).map((employee) => [employee.id, employee]));
     const header = ["Dipendente", "Mansione", "Data", "Tipologia", "Inizio programmato", "Fine programmata", "Inizio effettivo", "Fine effettiva", "Ore conteggiate", "Note"];
