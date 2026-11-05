@@ -18,6 +18,17 @@ const mina = Mina({
 export const metadata: Metadata = {
   title: "Il Caffè delle Valli | Paladina",
   description: "Caffetteria, colazioni e aperitivi a Paladina, nel cuore delle Valli bergamasche.",
+  applicationName: "Il Caffè delle Valli",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/chicco.png", type: "image/png", sizes: "1024x1024" }],
+    apple: [{ url: "/chicco.png", type: "image/png", sizes: "1024x1024" }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Caffè Valli",
+  },
 };
 
 export const viewport: Viewport = {
