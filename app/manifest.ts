@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Il Caffè delle Valli · Area gestionale",
-    short_name: "Caffè Valli",
+    short_name: "Il Caffè delle Valli",
     description: "Area riservata per la gestione de Il Caffè delle Valli.",
     start_url: "/area-riservata",
     scope: "/",
