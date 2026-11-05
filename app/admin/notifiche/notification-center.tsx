@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { beginAdminOperation, endAdminOperation } from "@/lib/admin-operation-feedback";
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Archive, ArchiveRestore, ArrowLeft, Bell, CalendarClock, Check, Clock3, LoaderCircle, Mail, Plus, Send, StickyNote, X } from "lucide-react";
 import { createAdminNote, sendTestNotificationEmail, setNotificationArchive, updateEmailPreference, type NotificationResult } from "./actions";
@@ -24,7 +24,6 @@ type Notice = {
 const displayDate = (value: string) => new Date(`${value}T12:00:00Z`).toLocaleDateString("it-IT");
 
 export function NotificationCenter({ notifications, setupReady, email, emailEnabled, emailPreferenceReady }: { notifications: Notice[]; setupReady: boolean; email: string; emailEnabled: boolean; emailPreferenceReady: boolean }) {
-  const router = useRouter();
   const [editor, setEditor] = useState(false);
   const [view, setView] = useState<"active" | "archive">("active");
   const [pending, startTransition] = useTransition();
@@ -40,14 +39,15 @@ export function NotificationCenter({ notifications, setupReady, email, emailEnab
   function run(action: (data: FormData) => Promise<NotificationResult>, data: FormData, done = () => {}, actionKey = "general") {
     setError("");
     setPendingAction(actionKey);
+    beginAdminOperation();
     startTransition(async () => {
       try {
         const result = await action(data);
         if (!result.ok) { setError(result.error || "Errore"); return; }
         done();
-        router.refresh();
       } finally {
         setPendingAction(null);
+        endAdminOperation();
       }
     });
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { beginAdminOperation, endAdminOperation } from "@/lib/admin-operation-feedback";
 import type { CSSProperties } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Plus, Sparkles, X } from "lucide-react";
@@ -26,7 +26,6 @@ function hoursLabel(totalMinutes:number){const hours=Math.floor(totalMinutes/60)
 function arrange(entries:CalendarEntry[]){const result:{entry:CalendarEntry;lane:number;laneCount:number}[]=[];let laneEnds:number[]=[],group:typeof result=[],groupEnd=-1;const finish=()=>{const count=Math.max(1,laneEnds.length);group.forEach(item=>item.laneCount=count)};[...entries].sort((a,b)=>minutes(a.start)-minutes(b.start)).forEach(entry=>{const start=minutes(entry.start);if(start>=groupEnd){finish();laneEnds=[];group=[]}let lane=laneEnds.findIndex(end=>end<=start);if(lane===-1){lane=laneEnds.length;laneEnds.push(minutes(entry.end))}else laneEnds[lane]=minutes(entry.end);const item={entry,lane,laneCount:1};result.push(item);group.push(item);groupEnd=Math.max(groupEnd,minutes(entry.end))});finish();return result}
 
 export function EmployeeShifts({name,color,weekStart,shifts,requests}:{name:string;color:string;weekStart:string;shifts:Shift[];requests:Request[]}){
-  const router=useRouter();
   const [extraOpen,setExtraOpen]=useState(false),[editing,setEditing]=useState<Shift|null>(null),[error,setError]=useState(""),[pending,startTransition]=useTransition();
   const today=new Date().toISOString().slice(0,10);
   const changeCutoff=monthsAgo(today,2);
@@ -41,7 +40,7 @@ export function EmployeeShifts({name,color,weekStart,shifts,requests}:{name:stri
     const pendingExtraMinutes=requests.filter(request=>request.request_type==="add_extra").reduce((total,request)=>total+durationMinutes(request.proposed_start_time,request.proposed_end_time),0);
     return {baseMinutes,extraMinutes,pendingExtraMinutes,totalMinutes:baseMinutes+extraMinutes};
   },[shifts,requests]);
-  function run(action:(data:FormData)=>Promise<{ok:boolean;error?:string}>,data:FormData,close:()=>void){setError("");startTransition(async()=>{const result=await action(data);if(!result.ok){setError(result.error??"Operazione non riuscita.");return}close();router.refresh()})}
+  function run(action:(data:FormData)=>Promise<{ok:boolean;error?:string}>,data:FormData,close:()=>void){setError("");beginAdminOperation();startTransition(async()=>{try{const result=await action(data);if(!result.ok){setError(result.error??"Operazione non riuscita.");return}close()}finally{endAdminOperation()}})}
 
   return <main className="admin-container employee-portal">
     <header className="employee-portal-heading"><div><p className="admin-kicker">Area personale</p><h1>I miei turni</h1><p>Ciao {name}. Consulta la pianificazione e comunica aggiunte o variazioni.</p></div><button className="admin-action admin-action-primary admin-action-create" onClick={()=>setExtraOpen(true)}><Plus size={17}/> Aggiungi ore extra</button></header>

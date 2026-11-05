@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useSearchParams } from "next/navigation";
+import { OPERATION_END, OPERATION_START } from "@/lib/admin-operation-feedback";
 
 const FEEDBACK_DELAY_MS = 180;
-const SAFETY_TIMEOUT_MS = 10_000;
+const SAFETY_TIMEOUT_MS = 30_000;
 
 export function AdminNavigationFeedback() {
   const pathname = usePathname();
@@ -47,6 +49,13 @@ function NavigationFeedbackState() {
       }, FEEDBACK_DELAY_MS);
     };
 
+    const showFeedback = (nextMessage: string) => {
+      clearTimers();
+      setMessage(nextMessage);
+      setVisible(true);
+      safetyTimer.current = setTimeout(hideFeedback, SAFETY_TIMEOUT_MS);
+    };
+
     const handleNavigationClick = (event: MouseEvent) => {
       if (
         event.defaultPrevented ||
@@ -79,7 +88,7 @@ function NavigationFeedbackState() {
       const command = submitter.textContent?.trim() ?? "";
       if (!/(salva|crea|importa|invia|aggiorna|conferma|approva|registra|aggiungi)/i.test(command)) return;
 
-      scheduleFeedback("Salvataggio…");
+      showFeedback("Salvataggio…");
       let pendingObserved = false;
       let checks = 0;
       formTimer.current = setInterval(() => {
@@ -92,21 +101,36 @@ function NavigationFeedbackState() {
       }, 100);
     };
 
+    const handleOperationStart = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      showFeedback(detail?.message || "Salvataggio…");
+    };
+
+    const handleOperationEnd = () => hideFeedback();
+
     document.addEventListener("click", handleNavigationClick, true);
     document.addEventListener("submit", handleFormSubmit, true);
+    window.addEventListener(OPERATION_START, handleOperationStart);
+    window.addEventListener(OPERATION_END, handleOperationEnd);
     return () => {
       document.removeEventListener("click", handleNavigationClick, true);
       document.removeEventListener("submit", handleFormSubmit, true);
+      window.removeEventListener(OPERATION_START, handleOperationStart);
+      window.removeEventListener(OPERATION_END, handleOperationEnd);
       clearTimers();
     };
   }, []);
 
   if (!visible) return null;
 
-  return (
-    <div className="admin-navigation-feedback" role="status" aria-live="polite">
-      <span className="admin-navigation-spinner" aria-hidden="true" />
-      <strong>{message}</strong>
-    </div>
+  return createPortal(
+    <div className="admin-navigation-feedback" role="status" aria-live="polite" aria-busy="true">
+      <div className="admin-navigation-feedback-card">
+        <span className="admin-navigation-spinner" aria-hidden="true" />
+        <strong>{message}</strong>
+        <small>Attendi il completamento dell’operazione</small>
+      </div>
+    </div>,
+    document.body,
   );
 }

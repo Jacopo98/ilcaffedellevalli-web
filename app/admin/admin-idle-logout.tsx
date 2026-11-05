@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Image from "next/image";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { logout } from "@/app/login/actions";
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
 const LAST_ACTIVITY_KEY = "admin-last-activity";
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = ["pointerdown", "pointermove", "keydown", "scroll", "touchstart"];
+const subscribeToClient = () => () => {};
 
 export function AdminIdleLogout() {
+  const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastRecordedActivity = useRef(0);
   const signingOut = useRef(false);
 
   useEffect(() => {
+    const obscureApp = () => document.documentElement.classList.add("admin-session-obscured");
+    const revealApp = () => document.documentElement.classList.remove("admin-session-obscured");
+
     const signOut = () => {
       if (signingOut.current) return;
       signingOut.current = true;
+      obscureApp();
       window.localStorage.removeItem(LAST_ACTIVITY_KEY);
       void logout();
     };
@@ -43,6 +51,24 @@ export function AdminIdleLogout() {
     window.localStorage.setItem(LAST_ACTIVITY_KEY, String(initialActivity));
     lastRecordedActivity.current = initialActivity;
     scheduleLogout(initialActivity);
+    revealApp();
+
+    const verifyAfterRestore = () => {
+      const restoredActivity = Number(window.localStorage.getItem(LAST_ACTIVITY_KEY));
+      if (!Number.isFinite(restoredActivity) || restoredActivity <= 0 || Date.now() - restoredActivity >= INACTIVITY_LIMIT_MS) {
+        signOut();
+        return;
+      }
+      scheduleLogout(restoredActivity);
+      revealApp();
+    };
+
+    const handlePageHide = () => obscureApp();
+    const handlePageShow = () => verifyAfterRestore();
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") obscureApp();
+      else verifyAfterRestore();
+    };
 
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== LAST_ACTIVITY_KEY) return;
@@ -56,13 +82,20 @@ export function AdminIdleLogout() {
 
     ACTIVITY_EVENTS.forEach((eventName) => window.addEventListener(eventName, recordActivity, { passive: true }));
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (timeout.current) clearTimeout(timeout.current);
       ACTIVITY_EVENTS.forEach((eventName) => window.removeEventListener(eventName, recordActivity));
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
-  return null;
+  if (!mounted) return null;
+  return createPortal(<div className="admin-session-shield" aria-hidden="true"><Image src="/Logo_black_trasparent.png" alt="" width={2843} height={820} priority style={{ width: "min(11rem, 52vw)", height: "auto" }} /><span /></div>, document.body);
 }

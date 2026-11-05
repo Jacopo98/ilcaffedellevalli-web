@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { beginAdminOperation, endAdminOperation } from "@/lib/admin-operation-feedback";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
@@ -100,10 +101,15 @@ export function EmployeeSchedule({ employees, shifts, shiftRequests, employeeAcc
 
   function run(action: (data: FormData) => Promise<EmployeeActionResult>, data: FormData, close: () => void) {
     setError("");
+    beginAdminOperation();
     startTransition(async () => {
-      const result = await action(data);
-      if (!result.ok) { setError(result.error || "Operazione non riuscita."); return; }
-      close(); router.refresh();
+      try {
+        const result = await action(data);
+        if (!result.ok) { setError(result.error || "Operazione non riuscita."); return; }
+        close();
+      } finally {
+        endAdminOperation();
+      }
     });
   }
   function newShift(date: string, start = "06:00", end = "10:00", entryType: EntryType = "work") {

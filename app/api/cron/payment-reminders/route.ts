@@ -11,13 +11,15 @@ export async function GET(request: Request) {
   until.setUTCDate(until.getUTCDate() + 7);
   const from = today.toISOString().slice(0, 10);
   const to = until.toISOString().slice(0, 10);
-  const [expenses, plans] = await Promise.all([
+  const [expenses, plans, invoiceLinks] = await Promise.all([
     supabase.from("expenses").select("id,description,due_date,total_cents").neq("payment_status", "paid").gte("due_date", from).lte("due_date", to),
     supabase.from("cost_plan_months").select("id,due_date,cash_amount_cents,recurring_cost_plans(name)").neq("status", "paid").gte("due_date", from).lte("due_date", to),
+    supabase.from("supplier_invoices").select("expense_id").not("expense_id", "is", null),
   ]);
-  if (expenses.error || plans.error) return Response.json({ error: "Query failed" }, { status: 500 });
+  if (expenses.error || plans.error || invoiceLinks.error) return Response.json({ error: "Query failed" }, { status: 500 });
+  const invoiceExpenseIds = new Set((invoiceLinks.data ?? []).map((invoice) => invoice.expense_id).filter((id): id is number => id !== null));
   const items = [
-    ...(expenses.data ?? []).map((entry) => ({ key: `expense-${entry.id}-${entry.due_date}`, title: entry.description, date: entry.due_date!, amount: entry.total_cents })),
+    ...(expenses.data ?? []).filter((entry) => !invoiceExpenseIds.has(entry.id)).map((entry) => ({ key: `expense-${entry.id}-${entry.due_date}`, title: entry.description, date: entry.due_date!, amount: entry.total_cents })),
     ...(plans.data ?? []).map((entry) => ({ key: `plan-${entry.id}-${entry.due_date}`, title: (entry.recurring_cost_plans as unknown as { name: string } | null)?.name ?? "Costo ricorrente", date: entry.due_date!, amount: entry.cash_amount_cents ?? 0 })),
   ];
   for (const item of items) await supabase.from("admin_notifications").upsert({ kind: "payment_due", title: `Pagamento in scadenza: ${item.title}`, message: `Importo previsto: ${(item.amount / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}`, due_date: item.date, priority: "high", fingerprint: item.key }, { onConflict: "fingerprint", ignoreDuplicates: true });

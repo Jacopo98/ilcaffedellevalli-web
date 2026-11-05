@@ -20,7 +20,7 @@ const annualMultiplier = (frequency: "monthly" | "bimonthly" | "quarterly" | "ye
 function done() { revalidatePath("/admin/spese"); revalidatePath("/admin"); }
 
 export async function createExpense(formData: FormData): Promise<ExpenseActionResult> {
-  const parsed = expenseSchema.safeParse({ categoryId: formData.get("category_id"), description: formData.get("description"), supplier: formData.get("supplier") ?? "", invoiceNumber: formData.get("invoice_number") ?? "", expenseDate: formData.get("expense_date"), amount: formData.get("amount"), vatRate: formData.get("vat_rate") ?? 0, accountingLabel: formData.get("accounting_label") ?? "F", paymentMethod: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
+  const parsed = expenseSchema.safeParse({ categoryId: formData.get("category_id"), description: formData.get("description"), supplier: formData.get("supplier") ?? "", invoiceNumber: formData.get("invoice_number") ?? "", expenseDate: formData.get("expense_date"), amount: formData.get("amount"), vatRate: formData.get("vat_rate") ?? 0, accountingLabel: formData.get("accounting_label") ?? "X", paymentMethod: formData.get("payment_method") ?? "", notes: formData.get("notes") ?? "" });
   if (!parsed.success) return { ok: false, error: "Controlla i dati della spesa." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
   const isInvoice=formData.get("is_invoice")==="on",netCents=cents(value.amount),vatCents=isInvoice?Math.round(netCents*value.vatRate/100):0;
