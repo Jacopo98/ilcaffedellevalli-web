@@ -13,14 +13,14 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/chicco.png",
-        sizes: "1024x1024",
+        src: "/app-icon-dark.png",
+        sizes: "1254x1254",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/chicco.png",
-        sizes: "1024x1024",
+        src: "/app-icon-dark.png",
+        sizes: "1254x1254",
         type: "image/png",
         purpose: "maskable",
       },

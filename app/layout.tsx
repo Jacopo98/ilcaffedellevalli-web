@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   applicationName: "Il Caffè delle Valli",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/chicco.png", type: "image/png", sizes: "1024x1024" }],
-    apple: [{ url: "/chicco.png", type: "image/png", sizes: "1024x1024" }],
+    icon: [{ url: "/site-icon-transparent.png", type: "image/png", sizes: "1254x1254" }],
+    apple: [{ url: "/app-icon-dark.png", type: "image/png", sizes: "1254x1254" }],
   },
   appleWebApp: {
     capable: true,
