@@ -166,7 +166,7 @@ export async function importSupplierInvoices(formData: FormData): Promise<Invoic
 
       const { data: expense, error: expenseError } = await supabase.from("expenses").insert({
         category_id: category.id, description: `Fattura ${invoiceNumber} · ${partyName(supplier)}`, supplier: partyName(supplier), invoice_number: invoiceNumber,
-        is_invoice: true, accounting_label: "F", expense_date: issueDate, due_date: dueDates.at(-1) || null, amount_net_cents: documentSign * taxable, vat_cents: documentSign * vat,
+        is_invoice: true, expense_date: issueDate, due_date: dueDates.at(-1) || null, amount_net_cents: documentSign * taxable, vat_cents: documentSign * vat,
         payment_status: "due", recurrence: "none", is_estimate: false, notes: "Importata da XML FatturaPA",
       }).select("id").single();
       if (expenseError || !expense) {
@@ -248,7 +248,6 @@ export async function createManualSupplierInvoice(formData: FormData): Promise<I
     supplier: values.supplier_name,
     invoice_number: values.invoice_number,
     is_invoice: true,
-    accounting_label: "F",
     expense_date: values.issue_date,
     due_date: values.due_date,
     paid_date: paidDate,
