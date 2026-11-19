@@ -39,11 +39,8 @@ create table if not exists public.cost_plan_months (
 create table if not exists public.daily_revenues (
   id bigint generated always as identity primary key,
   revenue_date date not null unique,
-  cash_cents integer not null default 0 check (cash_cents >= 0),
+  register_total_cents integer not null default 0 check (register_total_cents >= 0),
   pos_cents integer not null default 0 check (pos_cents >= 0),
-  other_cents integer not null default 0 check (other_cents >= 0),
-  refunds_cents integer not null default 0 check (refunds_cents >= 0),
-  receipt_count integer check (receipt_count is null or receipt_count >= 0),
   notes text,
   is_closed boolean not null default false,
   closed_at timestamptz,

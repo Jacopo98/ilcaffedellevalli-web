@@ -22,7 +22,7 @@ create table public.supplier_invoices (
   vat_cents integer not null check (vat_cents >= 0),
   total_cents integer not null check (total_cents >= 0),
   due_date date,
-  payment_status text not null default 'unpaid' check (payment_status in ('unpaid','paid')),
+  payment_status text not null default 'unpaid' check (payment_status in ('unpaid','automatic','paid')),
   paid_date date,
   payment_method text,
   expense_id bigint unique references public.expenses(id) on delete set null,

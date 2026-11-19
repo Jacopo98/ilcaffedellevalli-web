@@ -58,7 +58,7 @@ export async function updateExpenseCategory(formData: FormData): Promise<Expense
 const revenueMoney = z.string().trim().transform((value) => value === "" ? 0 : Number(value.replace(",", "."))).pipe(z.number().finite().min(0).max(1000000));
 const optionalRevenueCount = z.string().trim().transform((value) => value === "" ? null : Number(value)).pipe(z.number().int().min(0).max(100000).nullable());
 const revenueSchema = z.object({
-  date: z.iso.date(), drawerCount: revenueMoney, total: revenueMoney, pos: revenueMoney, issuedInvoices: revenueMoney,
+  date: z.iso.date(), total: revenueMoney, pos: revenueMoney,
   briochesCount: z.string().trim().min(1, "Inserisci il numero di brioches, anche 0 se non lo conosci.").transform(Number).pipe(z.number().int().min(0).max(100000)),
   lunchCoversCount: optionalRevenueCount,
   notes: optional(1000),
@@ -70,22 +70,10 @@ const revenueSchema = z.object({
 });
 
 export async function saveDailyRevenue(formData: FormData): Promise<ExpenseActionResult> {
-  const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), drawerCount: formData.get("drawer_count"), total: formData.get("total"), pos: formData.get("pos"), issuedInvoices: formData.get("issued_invoices") ?? "0", briochesCount: formData.get("brioches_count") ?? "", lunchCoversCount: formData.get("lunch_covers_count") ?? "", notes: formData.get("notes") ?? "" });
+  const parsed = revenueSchema.safeParse({ date: formData.get("revenue_date"), total: formData.get("total"), pos: formData.get("pos"), briochesCount: formData.get("brioches_count") ?? "", lunchCoversCount: formData.get("lunch_covers_count") ?? "", notes: formData.get("notes") ?? "" });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Controlla i dati dell'incasso." };
   const { supabase } = await requireAdmin(); const value = parsed.data;
-  const expenseCategories = formData.getAll("cash_expense_category");
-  const expenseAmounts = formData.getAll("cash_expense_amount");
-  if (expenseCategories.length !== expenseAmounts.length) return { ok: false, error: "Controlla le spese inserite nella chiusura." };
-  const cashExpenses: { category: "personale" | "materie_prime" | "altro"; amount_cents: number }[] = [];
-  for (let index = 0; index < expenseAmounts.length; index += 1) {
-    const rawAmount = String(expenseAmounts[index] ?? "").trim();
-    if (!rawAmount) continue;
-    const category = z.enum(["personale", "materie_prime", "altro"]).safeParse(expenseCategories[index]);
-    const amount = revenueMoney.safeParse(rawAmount);
-    if (!category.success || !amount.success) return { ok: false, error: "Controlla categoria e importo delle spese inserite." };
-    cashExpenses.push({ category: category.data, amount_cents: cents(amount.data) });
-  }
-  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, register_total_cents: cents(value.total), cash_cents: cents(Math.max(0,value.total-value.pos)), pos_cents: cents(value.pos), other_cents: cents(value.drawerCount), refunds_cents: 0, receipt_count: null, issued_invoices_cents: cents(value.issuedInvoices), cash_expenses: cashExpenses, brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
+  const { error } = await supabase.from("daily_revenues").upsert({ revenue_date: value.date, register_total_cents: cents(value.total), pos_cents: cents(value.pos), brioches_count: value.briochesCount, lunch_covers_count: value.lunchCoversCount, notes: value.notes, is_closed: false, closed_at: null }, { onConflict: "revenue_date" });
   if (error) return { ok: false, error: "Impossibile salvare l'incasso giornaliero." }; done(); return { ok: true };
 }
 

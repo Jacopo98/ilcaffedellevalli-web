@@ -15,6 +15,7 @@ const text = (value: unknown) => value === undefined || value === null ? "" : St
 const numberValue = (value: unknown) => { const parsed = Number(text(value).replace(",", ".")); return Number.isFinite(parsed) ? parsed : 0; };
 const cents = (value: unknown) => Math.round(numberValue(value) * 100);
 const CREDIT_NOTE_TYPES = new Set(["TD04", "TD08"]);
+const AUTOMATIC_PAYMENT_METHODS = new Set(["MP12", "MP19", "MP20", "MP21"]);
 const dateValue = (value: unknown) => { const parsed = text(value); return /^\d{4}-\d{2}-\d{2}$/.test(parsed) ? parsed : null; };
 const partyName = (party: XmlNode) => { const registry = obj(obj(party.DatiAnagrafici).Anagrafica); return text(registry.Denominazione) || [text(registry.Nome), text(registry.Cognome)].filter(Boolean).join(" "); };
 const address = (party: XmlNode) => { const site = obj(party.Sede); return [text(site.Indirizzo), text(site.NumeroCivico), text(site.CAP), text(site.Comune), text(site.Provincia), text(site.Nazione)].filter(Boolean).join(", "); };
@@ -30,10 +31,9 @@ const manualInvoiceSchema = z.object({
   vat_rate: decimalSchema.refine((value) => value <= 100),
   due_date: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
   payment_method: z.string().trim().max(8).transform((value) => value || null),
-  payment_status: z.enum(["unpaid", "paid"]),
+  payment_status: z.enum(["unpaid", "automatic", "paid"]),
   description: z.string().trim().max(500).transform((value) => value || null),
   notes: z.string().trim().max(2000).transform((value) => value || null),
-  tracking_label: z.union([z.literal(""), z.enum(["#TOPAY", "#???", "#ATTENTION"])]).transform((value) => value || null),
 });
 
 function paymentDetails(body: XmlNode) {
@@ -124,7 +124,9 @@ export async function importSupplierInvoices(formData: FormData): Promise<Invoic
       const hash = createHash("sha256").update(xmlText).update(String(bodyIndex)).digest("hex");
       const dueDates = payments.map((row) => row.due_date).filter((value): value is string => Boolean(value)).sort();
       const primaryMethod = payments.find((row) => row.method_code)?.method_code ?? null;
-      const { data: existing } = await supabase.from("supplier_invoices").select("id,due_date,expense_id").or(`source_hash.eq.${hash},and(supplier_vat_number.eq.${supplierVatNumber},invoice_number.eq.${invoiceNumber},issue_date.eq.${issueDate})`).maybeSingle();
+      const automaticPayment = payments.length > 0 && payments.every((row) => row.method_code !== null && AUTOMATIC_PAYMENT_METHODS.has(row.method_code));
+      const importedStatus = automaticPayment ? "automatic" : "unpaid";
+      const { data: existing } = await supabase.from("supplier_invoices").select("id,due_date,expense_id,payment_status").or(`source_hash.eq.${hash},and(supplier_vat_number.eq.${supplierVatNumber},invoice_number.eq.${invoiceNumber},issue_date.eq.${issueDate})`).maybeSingle();
 
       if (existing) {
         const { error: deleteError } = await supabase.from("supplier_invoice_payments").delete().eq("invoice_id", existing.id);
@@ -138,7 +140,7 @@ export async function importSupplierInvoices(formData: FormData): Promise<Invoic
           }
         }
         const dueDate = existing.due_date ?? dueDates.at(-1) ?? null;
-        await supabase.from("supplier_invoices").update({ payment_method: primaryMethod, due_date: dueDate }).eq("id", existing.id);
+        await supabase.from("supplier_invoices").update({ payment_method: primaryMethod, due_date: dueDate, payment_status: existing.payment_status === "paid" ? "paid" : importedStatus }).eq("id", existing.id);
         if (existing.expense_id) {
           const { error: expenseUpdateError } = await supabase.from("expenses").update({
             due_date: dueDate,
@@ -160,7 +162,7 @@ export async function importSupplierInvoices(formData: FormData): Promise<Invoic
         supplier_tax_code: text(obj(supplier.DatiAnagrafici).CodiceFiscale) || null, supplier_address: address(supplier) || null, customer_name: partyName(customer),
         customer_vat_number: text(customerVat.IdCodice) || null, customer_tax_code: text(obj(customer.DatiAnagrafici).CodiceFiscale) || null, customer_address: address(customer) || null,
         description: array(general.Causale as string | string[] | undefined).map(text).filter(Boolean).join(" · ") || null,
-        taxable_cents: taxable, vat_cents: vat, total_cents: total, due_date: dueDates.at(-1) || null, payment_status: "unpaid", payment_method: primaryMethod,
+        taxable_cents: taxable, vat_cents: vat, total_cents: total, due_date: dueDates.at(-1) || null, payment_status: importedStatus, payment_method: primaryMethod,
       }).select("id").single();
       if (invoiceError || !invoice) return { ok: false, error: `${file.name}: impossibile salvare la fattura.` };
 
@@ -235,7 +237,6 @@ export async function createManualSupplierInvoice(formData: FormData): Promise<I
     paid_date: paidDate,
     payment_method: values.payment_method,
     notes: values.notes,
-    tracking_label: values.tracking_label,
   }).select("id").single();
   if (invoiceError || !invoice) {
     console.error("Manual supplier invoice creation failed", { code: invoiceError?.code, message: invoiceError?.message });
@@ -283,17 +284,17 @@ export async function createManualSupplierInvoice(formData: FormData): Promise<I
   }
 
   revalidatePath("/admin/spese");
-  return { ok: true, message: "Fattura manuale registrata e aggiunta alle spese F." };
+  return { ok: true, message: "Fattura manuale registrata e aggiunta alle spese." };
 }
 
 export async function updateSupplierInvoice(formData: FormData): Promise<InvoiceActionResult> {
-  const parsed = z.object({ id: z.coerce.number().int().positive(), due: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null), status: z.enum(["unpaid", "paid"]), notes: z.string().trim().max(2000).transform((value) => value || null), trackingLabel: z.union([z.literal(""), z.enum(["#TOPAY", "#???", "#ATTENTION"])]).transform((value) => value || null) }).safeParse({ id: formData.get("id"), due: formData.get("due_date") ?? "", status: formData.get("payment_status"), notes: formData.get("notes") ?? "", trackingLabel: formData.get("tracking_label") ?? "" });
-  if (!parsed.success) return { ok: false, error: "Controlla scadenza, stato, etichetta e note." };
+  const parsed = z.object({ id: z.coerce.number().int().positive(), due: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null), status: z.enum(["unpaid", "automatic", "paid"]), notes: z.string().trim().max(2000).transform((value) => value || null) }).safeParse({ id: formData.get("id"), due: formData.get("due_date") ?? "", status: formData.get("payment_status"), notes: formData.get("notes") ?? "" });
+  if (!parsed.success) return { ok: false, error: "Controlla scadenza, stato e note." };
   const { supabase } = await requireAdmin();
   const { data: current, error: currentError } = await supabase.from("supplier_invoices").select("expense_id,paid_date").eq("id", parsed.data.id).single();
   if (currentError || !current) return { ok: false, error: "Fattura non trovata." };
   const paidDate = parsed.data.status === "paid" ? current.paid_date ?? new Date().toISOString().slice(0, 10) : null;
-  const { error } = await supabase.from("supplier_invoices").update({ due_date: parsed.data.due, payment_status: parsed.data.status, paid_date: paidDate, notes: parsed.data.notes, tracking_label: parsed.data.trackingLabel }).eq("id", parsed.data.id);
+  const { error } = await supabase.from("supplier_invoices").update({ due_date: parsed.data.due, payment_status: parsed.data.status, paid_date: paidDate, notes: parsed.data.notes }).eq("id", parsed.data.id);
   if (error) return { ok: false, error: "Impossibile aggiornare la fattura." };
   if (current.expense_id) await supabase.from("expenses").update({ due_date: parsed.data.due, payment_status: parsed.data.status === "paid" ? "paid" : "due", paid_date: paidDate }).eq("id", current.expense_id);
   revalidatePath("/admin/spese");

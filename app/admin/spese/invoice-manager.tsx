@@ -26,11 +26,10 @@ export type SupplierInvoice = {
   vat_cents: number;
   total_cents: number;
   due_date: string | null;
-  payment_status: "unpaid" | "paid";
+  payment_status: "unpaid" | "automatic" | "paid";
   paid_date: string | null;
   payment_method: string | null;
   notes: string | null;
-  tracking_label: InvoiceTrackingLabel | null;
   supplier_invoice_lines: {
     id: number;
     line_number: number;
@@ -78,15 +77,14 @@ export type SupplierInvoice = {
   }[];
 };
 
-type InvoiceTrackingLabel = "#TOPAY" | "#???" | "#ATTENTION";
-
 const euro = (cents: number) => (cents / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
 const date = (value: string) => new Date(`${value}T12:00:00Z`).toLocaleDateString("it-IT");
 const monthLabel = (value: string) => new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}-01T12:00:00Z`));
 const PAYMENT_METHODS: Record<string, string> = { MP01: "Contanti", MP02: "Assegno", MP03: "Assegno circolare", MP04: "Contanti presso tesoreria", MP05: "Bonifico", MP06: "Vaglia cambiario", MP07: "Bollettino bancario", MP08: "Carta di pagamento", MP09: "RID", MP10: "RID utenze", MP11: "RID veloce", MP12: "RIBA", MP13: "MAV", MP14: "Quietanza erario", MP15: "Giroconto", MP16: "Domiciliazione bancaria", MP17: "Domiciliazione postale", MP18: "Bollettino postale", MP19: "SEPA Direct Debit", MP20: "SEPA Direct Debit CORE", MP21: "SEPA Direct Debit B2B", MP22: "Trattenuta su somme riscosse", MP23: "PagoPA" };
 const paymentMethodLabel = (code: string | null) => code ? PAYMENT_METHODS[code] ?? code : "Non indicata";
 const paymentTermsLabel = (code: string | null) => code === "TP01" ? "Pagamento a rate" : code === "TP02" ? "Pagamento completo" : code === "TP03" ? "Anticipo" : code ?? "Condizione non indicata";
-const trackingLabelClass = (label: InvoiceTrackingLabel) => label === "#TOPAY" ? "topay" : label === "#ATTENTION" ? "attention" : "unknown";
+const paymentStatusLabel = (status: SupplierInvoice["payment_status"]) => status === "paid" ? "Pagata" : status === "automatic" ? "Pagamento automatico" : "Non pagata";
+const paymentStatusRank: Record<SupplierInvoice["payment_status"], number> = { unpaid: 0, automatic: 1, paid: 2 };
 const invoiceNote = (invoice: SupplierInvoice) => [invoice.paid_date ? `Pagata il ${date(invoice.paid_date)}` : null, invoice.notes].filter(Boolean).join(" · ");
 
 export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice[]; onBack: () => void }) {
@@ -98,7 +96,6 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
   const [sort, setSort] = useState<"date_desc" | "date_asc" | "unpaid_first" | "paid_first">("date_desc");
   const [unpaidOnly, setUnpaidOnly] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("all");
-  const [trackingLabel, setTrackingLabel] = useState<"all" | "none" | InvoiceTrackingLabel>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [message, setMessage] = useState("");
@@ -115,8 +112,6 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
       if (unpaidOnly && invoice.payment_status !== "unpaid") return false;
       const invoiceMethods = invoice.supplier_invoice_payments.map((payment) => payment.method_code).filter(Boolean);
       if (paymentMethod !== "all" && !invoiceMethods.includes(paymentMethod) && invoice.payment_method !== paymentMethod) return false;
-      if (trackingLabel === "none" && invoice.tracking_label !== null) return false;
-      if (trackingLabel !== "all" && trackingLabel !== "none" && invoice.tracking_label !== trackingLabel) return false;
       if (!query) return true;
       const supplierMatch = invoice.supplier_name.toLocaleLowerCase("it-IT").includes(query);
       const exactAmountMatch = Number.isFinite(amount) && [invoice.taxable_cents, invoice.total_cents]
@@ -128,11 +123,11 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
 
     return matches.sort((a, b) => {
       if (sort === "date_asc") return a.issue_date.localeCompare(b.issue_date) || a.id - b.id;
-      if (sort === "unpaid_first") return Number(a.payment_status === "paid") - Number(b.payment_status === "paid") || b.issue_date.localeCompare(a.issue_date);
-      if (sort === "paid_first") return Number(b.payment_status === "paid") - Number(a.payment_status === "paid") || b.issue_date.localeCompare(a.issue_date);
+      if (sort === "unpaid_first") return paymentStatusRank[a.payment_status] - paymentStatusRank[b.payment_status] || b.issue_date.localeCompare(a.issue_date);
+      if (sort === "paid_first") return paymentStatusRank[b.payment_status] - paymentStatusRank[a.payment_status] || b.issue_date.localeCompare(a.issue_date);
       return b.issue_date.localeCompare(a.issue_date) || b.id - a.id;
     });
-  }, [invoices, month, search, sort, unpaidOnly, paymentMethod, trackingLabel]);
+  }, [invoices, month, search, sort, unpaidOnly, paymentMethod]);
 
   const availablePaymentMethods = useMemo(() => [...new Set(invoices.flatMap((invoice) => [invoice.payment_method, ...invoice.supplier_invoice_payments.map((payment) => payment.method_code)]).filter((value): value is string => Boolean(value)))].sort((a, b) => paymentMethodLabel(a).localeCompare(paymentMethodLabel(b), "it")), [invoices]);
   const availableMonths = useMemo(() => [...new Set(invoices.map((invoice) => invoice.issue_date.slice(0, 7)))].sort((a, b) => b.localeCompare(a)), [invoices]);
@@ -172,7 +167,7 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
         <button type="button" className="invoice-back-link" onClick={onBack}><ArrowLeft size={15} /> Spese</button>
         <p className="admin-kicker">Fatture ricevute</p>
         <h2>Archivio fatture</h2>
-        <p>Ogni documento entra nelle spese F nel mese della sua data di emissione.</p>
+        <p>Ogni documento entra nelle spese nel mese della sua data di emissione.</p>
       </div>
       <div className="invoice-toolbar-actions">
         <button className="admin-action admin-action-secondary invoice-manual-action" onClick={() => setManualEntry(true)}><FilePenLine size={17} /><span>Inserisci manualmente</span></button>
@@ -213,16 +208,6 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
           {availablePaymentMethods.map((method) => <option value={method} key={method}>{paymentMethodLabel(method)}</option>)}
         </select>
       </label>
-      <label>
-        <span>Etichetta</span>
-        <select value={trackingLabel} onChange={(event) => { setTrackingLabel(event.target.value as typeof trackingLabel); setPage(1); }}>
-          <option value="all">Tutte le etichette</option>
-          <option value="#TOPAY">#TOPAY</option>
-          <option value="#???">#???</option>
-          <option value="#ATTENTION">#ATTENTION</option>
-          <option value="none">Senza etichetta</option>
-        </select>
-      </label>
       <button type="button" className={`invoice-unpaid-filter${unpaidOnly ? " active" : ""}`} aria-pressed={unpaidOnly} onClick={() => { setUnpaidOnly((value) => !value); setPage(1); }}>
         <ListFilter size={16}/>
         <span><small>Filtro rapido</small><strong>{unpaidOnly ? "Solo non pagate" : "Mostra non pagate"}</strong></span>
@@ -238,7 +223,7 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
       </div>
       <div className="expense-table-wrap">
         <table className="invoice-table">
-          <thead><tr><th>Data emissione</th><th>Fornitore</th><th>Numero</th><th>Imponibile</th><th>Totale</th><th>Pagamento</th><th>Scadenza</th><th>Stato</th><th>Etichetta</th><th>Note</th></tr></thead>
+          <thead><tr><th>Data emissione</th><th>Fornitore</th><th>Numero</th><th>Imponibile</th><th>Totale</th><th>Pagamento</th><th>Scadenza</th><th>Stato</th><th>Note</th></tr></thead>
           <tbody>{paginatedInvoices.map((invoice) => <tr key={invoice.id} onClick={() => setSelected(invoice)}>
             <td>{date(invoice.issue_date)}</td>
             <td><strong>{invoice.supplier_name}</strong><small>P.IVA {invoice.supplier_vat_country}{invoice.supplier_vat_number}</small></td>
@@ -247,8 +232,7 @@ export function InvoiceManager({ invoices, onBack }: { invoices: SupplierInvoice
             <td><strong>{euro(invoice.total_cents)}</strong></td>
             <td>{paymentMethodLabel(invoice.supplier_invoice_payments.find((payment) => payment.method_code)?.method_code ?? invoice.payment_method)}</td>
             <td>{invoice.due_date ? date(invoice.due_date) : "Da inserire"}</td>
-            <td><span className={`invoice-status ${invoice.payment_status}`}>{invoice.payment_status === "paid" ? "Pagata" : "Non pagata"}</span></td>
-            <td>{invoice.tracking_label ? <span className={`invoice-tracking-label ${trackingLabelClass(invoice.tracking_label)}`}>{invoice.tracking_label}</span> : "—"}</td>
+            <td><span className={`invoice-status ${invoice.payment_status}`}>{paymentStatusLabel(invoice.payment_status)}</span></td>
             <td className="invoice-note-cell">{invoiceNote(invoice) || "—"}</td>
           </tr>)}</tbody>
         </table>
@@ -291,7 +275,7 @@ function ManualInvoiceModal({ pending, onClose, onSave }: { pending: boolean; on
       <span className="invoice-upload-icon"><FilePenLine /></span>
       <p className="admin-kicker">Caso eccezionale</p>
       <h2>Inserisci fattura manualmente</h2>
-      <p className="employee-extra-intro">Usa questa funzione solo quando non puoi recuperare il file XML. La fattura sarà registrata tra le spese F.</p>
+      <p className="employee-extra-intro">Usa questa funzione solo quando non puoi recuperare il file XML. La fattura sarà registrata tra le spese.</p>
       <form className="admin-edit-grid" onSubmit={(event) => { event.preventDefault(); onSave(new FormData(event.currentTarget)); }}>
         <label className="admin-field"><span>Tipo documento</span><select name="document_type" defaultValue="TD01"><option value="TD01">Fattura</option><option value="TD04">Nota di credito</option></select></label>
         <label className="admin-field"><span>Numero fattura</span><input name="invoice_number" required /></label>
@@ -303,8 +287,7 @@ function ManualInvoiceModal({ pending, onClose, onSave }: { pending: boolean; on
         <label className="admin-field"><span>Totale documento</span><input className="revenue-calculated-input" value={euro(Math.round(total * 100))} readOnly /></label>
         <label className="admin-field"><span>Scadenza <small>(facoltativa)</small></span><input name="due_date" type="date" /></label>
         <label className="admin-field"><span>Modalità di pagamento</span><select name="payment_method" defaultValue=""><option value="">Non indicata</option>{Object.entries(PAYMENT_METHODS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-        <label className="admin-field"><span>Stato</span><select name="payment_status" defaultValue="unpaid"><option value="unpaid">Non pagata</option><option value="paid">Pagata</option></select></label>
-        <label className="admin-field"><span>Etichetta <small>(facoltativa)</small></span><select name="tracking_label" defaultValue=""><option value="">Nessuna</option><option value="#TOPAY">#TOPAY</option><option value="#???">#???</option><option value="#ATTENTION">#ATTENTION</option></select></label>
+        <label className="admin-field"><span>Stato</span><select name="payment_status" defaultValue="unpaid"><option value="unpaid">Non pagata</option><option value="automatic">Pagamento automatico</option><option value="paid">Pagata</option></select></label>
         <label className="admin-field admin-field-wide"><span>Descrizione <small>(facoltativa)</small></span><textarea name="description" rows={3} placeholder="Breve descrizione della fornitura" /></label>
         <label className="admin-field admin-field-wide"><span>Note gestionali <small>(facoltative)</small></span><textarea name="notes" rows={3} placeholder="Aggiungi una nota interna sulla fattura" /></label>
         <div className="modal-actions admin-field-wide"><button type="button" className="admin-action admin-action-secondary" onClick={onClose}>Annulla</button><button className="admin-action admin-action-primary" disabled={pending}>{pending ? "Registrazione…" : "Registra fattura"}</button></div>
@@ -350,8 +333,7 @@ function InvoiceDetail({ invoice, pending, onClose, onSave }: { invoice: Supplie
       <form className="invoice-payment" onSubmit={(event) => { event.preventDefault(); onSave(new FormData(event.currentTarget)); }}>
         <input type="hidden" name="id" value={invoice.id} />
         <label className="admin-field"><span>Scadenza pagamento</span><input name="due_date" type="date" defaultValue={invoice.due_date ?? ""} /></label>
-        <label className="admin-field"><span>Stato</span><select name="payment_status" defaultValue={invoice.payment_status}><option value="unpaid">Non pagata</option><option value="paid">Pagata</option></select></label>
-        <label className="admin-field"><span>Etichetta</span><select name="tracking_label" defaultValue={invoice.tracking_label ?? ""}><option value="">Nessuna</option><option value="#TOPAY">#TOPAY</option><option value="#???">#???</option><option value="#ATTENTION">#ATTENTION</option></select></label>
+        <label className="admin-field"><span>Stato</span><select name="payment_status" defaultValue={invoice.payment_status}><option value="unpaid">Non pagata</option><option value="automatic">Pagamento automatico</option><option value="paid">Pagata</option></select></label>
         <label className="admin-field invoice-notes-field"><span>Note</span><textarea name="notes" rows={3} defaultValue={invoice.notes ?? ""} placeholder="Aggiungi una nota interna"/><small>{invoice.paid_date ? `Catalogata come pagata il ${date(invoice.paid_date)}` : "La data di pagamento verrà aggiunta automaticamente quando imposti Pagata."}</small></label>
         <button className="admin-action admin-action-primary invoice-save-status" disabled={pending}><Check size={17} strokeWidth={3} /><span>{pending ? "Salvataggio…" : "Salva stato"}</span></button>
       </form>
