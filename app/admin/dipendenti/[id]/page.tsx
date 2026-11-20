@@ -11,7 +11,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   try { context = await requireAdmin(); } catch { redirect("/admin"); }
   const employeeId = Number((await params).id);
   if (!Number.isInteger(employeeId) || employeeId <= 0) notFound();
-  const { data, error } = await context.supabase.from("employees").select("id,first_name,last_name,phone,email,tax_code,iban,birth_date,residence_address,emergency_contact_name,emergency_contact_phone,role_title,hire_date,contract_level,ral_cents,contract_start,contract_end,weekly_contract_hours,notes,color,is_active,drive_folder_id").eq("id", employeeId).single();
+  const { data, error } = await context.supabase.from("employees").select("id,first_name,last_name,phone,email,tax_code,iban,birth_date,residence_address,emergency_contact_name,emergency_contact_phone,role_title,hire_date,contract_level,contract_type,intermittent_communication_code,ral_cents,contract_start,contract_end,weekly_contract_hours,notes,color,is_active,drive_folder_id").eq("id", employeeId).single();
   if (error || !data) notFound();
   const employee = data as EmployeeProfile;
   const driveConfigured = isDriveConfigured();
@@ -19,7 +19,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const initials = `${employee.first_name.charAt(0)}${employee.last_name.charAt(0)}`;
 
   return <main className="admin-container employee-profile-page">
-    <div className="staff-topbar"><Link className="admin-inline-link" href="/admin/dipendenti"><ArrowLeft size={15}/> Dipendenti e turni</Link></div>
+    <div className="staff-topbar"><Link className="admin-inline-link" href="/admin/dipendenti?tab=employees"><ArrowLeft size={15}/> Anagrafica dipendenti</Link></div>
     <header className="employee-profile-hero">
       <span className="employee-profile-avatar" style={{background:`${employee.color}1f`,color:employee.color}}>{initials}</span>
       <div><p className="admin-kicker">Profilo del dipendente</p><h1>{employee.first_name} {employee.last_name}</h1><p>{employee.role_title} · {employee.is_active?"Rapporto attivo":"Anagrafica non attiva"}</p></div>
@@ -28,7 +28,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
     <section className="employee-profile-summary">
       <article><CircleUserRound/><span><small>Codice fiscale</small><strong>{employee.tax_code||"Non indicato"}</strong></span></article>
-      <article><BriefcaseBusiness/><span><small>Contratto</small><strong>{employee.contract_level||"Livello non indicato"}</strong></span></article>
+      <article><BriefcaseBusiness/><span><small>Contratto</small><strong>{employee.contract_type==="fixed_term"?"Tempo determinato":employee.contract_type==="on_call"?"A chiamata":"Tempo indeterminato"}</strong></span></article>
       <article><Phone/><span><small>Telefono</small><strong>{employee.phone||"Non indicato"}</strong></span></article>
       <article><Mail/><span><small>Email</small><strong>{employee.email||"Non indicata"}</strong></span></article>
       <article><MapPin/><span><small>Residenza</small><strong>{employee.residence_address||"Non indicata"}</strong></span></article>

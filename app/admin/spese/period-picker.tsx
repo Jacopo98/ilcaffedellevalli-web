@@ -13,13 +13,13 @@ const dateFrom = (value:string) => new Date(`${value}T12:00:00`);
 const weekValue = (date:Date) => { const current=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),12));const day=current.getUTCDay()||7;current.setUTCDate(current.getUTCDate()+4-day);const start=new Date(Date.UTC(current.getUTCFullYear(),0,1));return `${current.getUTCFullYear()}-W${String(Math.ceil((((current.getTime()-start.getTime())/86400000)+1)/7)).padStart(2,"0")}`; };
 const weekDate = (value:string) => { const [year,week]=value.split("-W").map(Number);const jan4=new Date(Date.UTC(year,0,4,12));jan4.setUTCDate(jan4.getUTCDate()-(jan4.getUTCDay()||7)+1+(week-1)*7);return new Date(jan4.getUTCFullYear(),jan4.getUTCMonth(),jan4.getUTCDate(),12); };
 
-export function PeriodPicker({mode,value,onChange}:{mode:PickerMode;value:string;onChange:(value:string)=>void}){
+export function PeriodPicker({mode,value,onChange,numericDay=false}:{mode:PickerMode;value:string;onChange:(value:string)=>void;numericDay?:boolean}){
   const [open,setOpen]=useState(false);
   const root=useRef<HTMLDivElement>(null);
   const selected=mode==="day"?dateFrom(value):mode==="week"?weekDate(value):mode==="month"?dateFrom(`${value}-01`):undefined;
   const [visibleMonth,setVisibleMonth]=useState(selected??new Date());
   useEffect(()=>{const close=(event:PointerEvent)=>{if(root.current&&!root.current.contains(event.target as Node))setOpen(false)};document.addEventListener("pointerdown",close);return()=>document.removeEventListener("pointerdown",close)},[]);
-  const label=mode==="day"?selected?.toLocaleDateString("it-IT",{day:"numeric",month:"short",year:"numeric"}):mode==="week"?`Settimana ${value.split("-W")[1]} · ${value.slice(0,4)}`:mode==="month"?selected?.toLocaleDateString("it-IT",{month:"long",year:"numeric"}):mode==="quarter"?`${value.split("-Q")[1]}° trimestre ${value.slice(0,4)}`:value;
+  const label=mode==="day"?(numericDay?selected?.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"}):selected?.toLocaleDateString("it-IT",{day:"numeric",month:"short",year:"numeric"})):mode==="week"?`Settimana ${value.split("-W")[1]} · ${value.slice(0,4)}`:mode==="month"?selected?.toLocaleDateString("it-IT",{month:"long",year:"numeric"}):mode==="quarter"?`${value.split("-Q")[1]}° trimestre ${value.slice(0,4)}`:value;
   const choose=(date:Date|undefined)=>{if(!date)return;if(mode==="day")onChange(isoDate(date));if(mode==="week")onChange(weekValue(date));if(mode==="month")onChange(isoDate(date).slice(0,7));setOpen(false)};
   const currentYear=new Date().getFullYear();
   const years=Array.from({length:21},(_,index)=>currentYear-5+index);

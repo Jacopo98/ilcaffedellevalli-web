@@ -18,6 +18,8 @@ create table public.employees (
   role_title text not null default 'Collaboratore' check (char_length(role_title) <= 80),
   hire_date date,
   contract_level text check (contract_level is null or char_length(contract_level) <= 80),
+  contract_type text not null default 'indefinite' check (contract_type in ('indefinite', 'fixed_term', 'on_call')),
+  intermittent_communication_code text check (intermittent_communication_code is null or char_length(intermittent_communication_code) between 1 and 40),
   ral_cents integer check (ral_cents is null or ral_cents >= 0),
   contract_start date,
   contract_end date,

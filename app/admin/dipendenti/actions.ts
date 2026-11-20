@@ -25,6 +25,8 @@ const employeeSchema = z.object({
   roleTitle: z.string().trim().min(1).max(80),
   hireDate: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
   contractLevel: optionalText(80),
+  contractType: z.enum(["indefinite", "fixed_term", "on_call"]),
+  intermittentCommunicationCode: optionalText(40),
   ral: z.union([z.literal(""), z.coerce.number().min(0).max(10000000)]).transform((value) => value === "" ? null : value),
   contractStart: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
   contractEnd: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
@@ -63,7 +65,7 @@ function employeeValues(formData: FormData) {
     email: formData.get("email") ?? "", taxCode: formData.get("tax_code") ?? "", iban: formData.get("iban") ?? "", birthDate: formData.get("birth_date") ?? "",
     residenceAddress: formData.get("residence_address") ?? "", emergencyContactName: formData.get("emergency_contact_name") ?? "", emergencyContactPhone: formData.get("emergency_contact_phone") ?? "",
     roleTitle: formData.get("role_title") ?? "Collaboratore", hireDate: formData.get("hire_date") ?? "",
-    contractLevel: formData.get("contract_level") ?? "", ral: formData.get("ral") ?? "", contractStart: formData.get("contract_start") ?? "", contractEnd: formData.get("contract_end") ?? "",
+    contractLevel: formData.get("contract_level") ?? "", contractType: formData.get("contract_type") ?? "indefinite", intermittentCommunicationCode: formData.get("intermittent_communication_code") ?? "", ral: formData.get("ral") ?? "", contractStart: formData.get("contract_start") ?? "", contractEnd: formData.get("contract_end") ?? "",
     weeklyHours: formData.get("weekly_contract_hours") ?? "", notes: formData.get("notes") ?? "", color: formData.get("color") ?? "#E8650A",
   });
 }
@@ -73,7 +75,7 @@ export async function createEmployee(formData: FormData): Promise<EmployeeAction
   if (!parsed.success) return { ok: false, error: "Controlla i dati inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const { error } = await supabase.from("employees").insert({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: true });
+  const { error } = await supabase.from("employees").insert({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, contract_type: value.contractType, intermittent_communication_code: value.intermittentCommunicationCode, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: true });
   if (error) return { ok: false, error: error.code === "23505" ? (error.message.includes("employees_tax_code_unique") ? "Questo codice fiscale è già associato a un dipendente." : "Questo dipendente è già presente.") : "Impossibile creare il dipendente." };
   refreshSchedule();
   return { ok: true };
@@ -85,7 +87,7 @@ export async function updateEmployee(formData: FormData): Promise<EmployeeAction
   if (!id.success || !parsed.success) return { ok: false, error: "Controlla i dati inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
+  const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, contract_type: value.contractType, intermittent_communication_code: value.intermittentCommunicationCode, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
   if (error) return { ok: false, error: error.code === "23505" ? (error.message.includes("employees_tax_code_unique") ? "Questo codice fiscale è già associato a un dipendente." : "Esiste già un dipendente con questo nome.") : "Impossibile salvare il dipendente." };
   if (formData.has("user_account_id")) {
     const accountId = String(formData.get("user_account_id") ?? "");

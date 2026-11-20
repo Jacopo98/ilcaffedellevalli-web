@@ -11,7 +11,7 @@ function mondayOf(value?: string) {
   return utc;
 }
 
-export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ week?: string; focus?: string }> }) {
+export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ week?: string; focus?: string; tab?: string }> }) {
   let context;
   try { context = await requireAdmin(); } catch { redirect("/admin"); }
   const params = await searchParams;
@@ -19,12 +19,12 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
   const sunday = new Date(monday); sunday.setUTCDate(sunday.getUTCDate() + 6);
 
   const [employeesResult, shiftsResult, accountsResult, requestsResult] = await Promise.all([
-    context.supabase.from("employees").select("id, first_name, last_name, phone, email, tax_code, iban, birth_date, residence_address, emergency_contact_name, emergency_contact_phone, role_title, hire_date, contract_level, ral_cents, contract_start, contract_end, weekly_contract_hours, notes, color, is_active, drive_folder_id").order("is_active", { ascending: false }).order("first_name"),
+    context.supabase.from("employees").select("id, first_name, last_name, phone, email, tax_code, iban, birth_date, residence_address, emergency_contact_name, emergency_contact_phone, role_title, hire_date, contract_level, contract_type, intermittent_communication_code, ral_cents, contract_start, contract_end, weekly_contract_hours, notes, color, is_active, drive_folder_id").order("is_active", { ascending: false }).order("first_name"),
     context.supabase.from("work_shifts").select("id, employee_id, entry_type, shift_date, start_time, end_time, actual_start_time, actual_end_time, break_minutes, notes, approval_status").gte("shift_date", isoDate(monday)).lte("shift_date", isoDate(sunday)).order("shift_date").order("start_time"),
     context.supabase.from("profiles").select("id,email,display_name,employee_id,role").order("display_name"),
     context.supabase.from("shift_change_requests").select("id,employee_id,work_shift_id,request_type,original_date,original_start_time,original_end_time,proposed_date,proposed_start_time,proposed_end_time,notes,status,created_at").eq("status","pending").gte("proposed_date",isoDate(monday)).lte("proposed_date",isoDate(sunday)).order("created_at"),
   ]);
   if (employeesResult.error || shiftsResult.error || accountsResult.error || requestsResult.error) throw new Error("Impossibile caricare dipendenti, turni e richieste. Verifica employee-personal-details-migration.sql ed employee-shift-requests-migration.sql su Supabase.");
 
-  return <EmployeeSchedule employees={employeesResult.data ?? []} shifts={shiftsResult.data ?? []} shiftRequests={requestsResult.data ?? []} employeeAccounts={accountsResult.data ?? []} weekStart={isoDate(monday)} openFullscreen={params.focus === "1"} />;
+  return <EmployeeSchedule employees={employeesResult.data ?? []} shifts={shiftsResult.data ?? []} shiftRequests={requestsResult.data ?? []} employeeAccounts={accountsResult.data ?? []} weekStart={isoDate(monday)} openFullscreen={params.focus === "1"} initialTab={params.tab === "employees" ? "employees" : "calendar"} />;
 }
