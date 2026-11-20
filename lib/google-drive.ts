@@ -100,8 +100,13 @@ export async function driveRequest(userId: string, path: string, init?: RequestI
 
 export async function assertInsideDriveRoot(userId: string, fileId: string, allowRoot = true) {
   const root = driveRootFolderId();
-  if (fileId === root) {
-    if (allowRoot) return;
+  return assertInsideDriveFolder(userId, fileId, root, allowRoot);
+}
+
+export async function assertInsideDriveFolder(userId: string, fileId: string, folderId: string, allowFolder = true) {
+  if (folderId !== driveRootFolderId()) await assertInsideDriveRoot(userId, folderId);
+  if (fileId === folderId) {
+    if (allowFolder) return;
     throw new Error("La cartella radice non può essere modificata");
   }
   let current = fileId;
@@ -113,7 +118,7 @@ export async function assertInsideDriveRoot(userId: string, fileId: string, allo
     const file = await response.json() as { parents?: string[] };
     const parent = file.parents?.[0];
     if (!parent) break;
-    if (parent === root) return;
+    if (parent === folderId) return;
     current = parent;
   }
   throw new Error("Elemento esterno all'archivio autorizzato");

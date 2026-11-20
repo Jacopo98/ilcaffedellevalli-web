@@ -87,12 +87,14 @@ export async function updateEmployee(formData: FormData): Promise<EmployeeAction
   const value = parsed.data;
   const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
   if (error) return { ok: false, error: error.code === "23505" ? (error.message.includes("employees_tax_code_unique") ? "Questo codice fiscale è già associato a un dipendente." : "Esiste già un dipendente con questo nome.") : "Impossibile salvare il dipendente." };
-  const accountId = String(formData.get("user_account_id") ?? "");
-  const { error: unlinkError } = await supabase.from("profiles").update({ employee_id: null }).eq("employee_id", id.data);
-  if (unlinkError) return { ok: false, error: "Dipendente salvato, ma associazione account non aggiornata. Esegui employee-portal-migration.sql." };
-  if (accountId) {
-    const { error: linkError } = await supabase.from("profiles").update({ employee_id: id.data }).eq("id", accountId).eq("role", "employee");
-    if (linkError) return { ok: false, error: "Dipendente salvato, ma account non associato." };
+  if (formData.has("user_account_id")) {
+    const accountId = String(formData.get("user_account_id") ?? "");
+    const { error: unlinkError } = await supabase.from("profiles").update({ employee_id: null }).eq("employee_id", id.data);
+    if (unlinkError) return { ok: false, error: "Dipendente salvato, ma associazione account non aggiornata. Esegui employee-portal-migration.sql." };
+    if (accountId) {
+      const { error: linkError } = await supabase.from("profiles").update({ employee_id: id.data }).eq("id", accountId).eq("role", "employee");
+      if (linkError) return { ok: false, error: "Dipendente salvato, ma account non associato." };
+    }
   }
   refreshSchedule();
   return { ok: true };

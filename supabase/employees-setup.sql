@@ -14,6 +14,7 @@ create table public.employees (
   residence_address text check (residence_address is null or char_length(residence_address) <= 300),
   emergency_contact_name text check (emergency_contact_name is null or char_length(emergency_contact_name) <= 120),
   emergency_contact_phone text check (emergency_contact_phone is null or char_length(emergency_contact_phone) <= 30),
+  drive_folder_id text,
   role_title text not null default 'Collaboratore' check (char_length(role_title) <= 80),
   hire_date date,
   contract_level text check (contract_level is null or char_length(contract_level) <= 80),
@@ -61,6 +62,7 @@ create table public.work_shifts (
 create index work_shifts_week_idx on public.work_shifts (shift_date, employee_id);
 create index employees_active_idx on public.employees (is_active, first_name);
 create unique index employees_tax_code_unique on public.employees (tax_code) where tax_code is not null;
+create unique index employees_drive_folder_id_unique on public.employees (drive_folder_id) where drive_folder_id is not null;
 
 create or replace function public.set_updated_at()
 returns trigger

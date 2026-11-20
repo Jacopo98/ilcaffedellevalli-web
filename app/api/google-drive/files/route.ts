@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
-import { assertInsideDriveRoot, driveRequest, driveRootFolderId, FOLDER_MIME } from "@/lib/google-drive";
+import { assertInsideDriveFolder, assertInsideDriveRoot, driveRequest, driveRootFolderId, FOLDER_MIME } from "@/lib/google-drive";
 
 const jsonError = (error: unknown, status = 400) => Response.json({ error: error instanceof Error ? error.message : "Operazione non riuscita" }, { status });
 
@@ -7,14 +7,20 @@ export async function GET(request: Request) {
   try {
     const { profile } = await requireAdmin();
     const url = new URL(request.url);
+    const search = url.searchParams.get("search")?.trim();
     const folderId = url.searchParams.get("folder") || driveRootFolderId();
     await assertInsideDriveRoot(profile.id, folderId);
-    const params = new URLSearchParams({ q: `'${folderId}' in parents and trashed = false`, fields: "files(id,name,mimeType,size,modifiedTime,iconLink,webViewLink,thumbnailLink,capabilities(canEdit,canDelete,canRename,canDownload))", orderBy: "folder,name_natural", pageSize: "1000", spaces: "drive", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
+    const safeSearch = search?.replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+    const params = new URLSearchParams({ q: search ? `name contains '${safeSearch}' and trashed = false` : `'${folderId}' in parents and trashed = false`, fields: "files(id,name,mimeType,size,modifiedTime,iconLink,webViewLink,thumbnailLink,capabilities(canEdit,canDelete,canRename,canDownload))", orderBy: "folder,name_natural", pageSize: search ? "200" : "1000", spaces: "drive", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
     const [filesResponse, folderResponse] = await Promise.all([
       driveRequest(profile.id, `/drive/v3/files?${params}`),
       driveRequest(profile.id, `/drive/v3/files/${encodeURIComponent(folderId)}?fields=id,name,mimeType,parents&supportsAllDrives=true`),
     ]);
-    return Response.json({ ...(await filesResponse.json()), folder: await folderResponse.json(), rootId: driveRootFolderId() });
+    const listing = await filesResponse.json() as { files?: Array<{ id: string }> };
+    const files = search ? (await Promise.all((listing.files ?? []).map(async (file) => {
+      try { await assertInsideDriveFolder(profile.id, file.id, folderId); return file; } catch { return null; }
+    }))).filter(Boolean) : listing.files ?? [];
+    return Response.json({ files, folder: await folderResponse.json(), rootId: driveRootFolderId(), search: search || null });
   } catch (error) { return jsonError(error, 403); }
 }
 

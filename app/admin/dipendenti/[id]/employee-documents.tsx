@@ -1,0 +1,17 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { FolderPlus, Link2, Unlink } from "lucide-react";
+import { beginAdminOperation, endAdminOperation } from "@/lib/admin-operation-feedback";
+import { DriveArchive } from "../../archivio/drive-archive";
+
+export function EmployeeDocuments({employeeId,folderId,googleEmail,driveConfigured}:{employeeId:number;folderId:string|null;googleEmail:string|null;driveConfigured:boolean}){
+  const router=useRouter();const [link,setLink]=useState("");const [error,setError]=useState("");const [pending,setPending]=useState(false);
+  async function configure(action:"create"|"link"){setPending(true);setError("");beginAdminOperation();try{const response=await fetch("/api/google-drive/employee-folder",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({employeeId,action,folder:link})});const result=await response.json();if(!response.ok)throw new Error(result.error||"Operazione non riuscita");router.refresh()}catch(value){setError(value instanceof Error?value.message:"Operazione non riuscita")}finally{setPending(false);endAdminOperation()}}
+  async function unlink(){if(!confirm("Scollegare la cartella dal dipendente? I documenti non verranno eliminati da Google Drive."))return;setPending(true);beginAdminOperation();try{const response=await fetch(`/api/google-drive/employee-folder?employee=${employeeId}`,{method:"DELETE"});if(!response.ok){const result=await response.json();throw new Error(result.error||"Operazione non riuscita")}router.refresh()}catch(value){setError(value instanceof Error?value.message:"Operazione non riuscita")}finally{setPending(false);endAdminOperation()}}
+  return <section className="employee-documents"><header><div><p className="admin-kicker">Archivio personale</p><h2>Documenti del dipendente</h2><p>Una cartella dedicata all’interno dell’Archivio generale.</p></div>{folderId&&<button className="admin-action admin-action-secondary admin-action-create" disabled={pending} onClick={unlink}><Unlink size={15}/><span>Scollega cartella</span></button>}</header>{error&&<div className="staff-alert">{error}</div>}
+    {!driveConfigured?<div className="employee-document-setup"><p>Completa prima la configurazione Google Drive dell’Archivio generale.</p></div>:!googleEmail?<div className="employee-document-setup"><p>Collega l’account Google autorizzato per consultare i documenti.</p><Link className="admin-action admin-action-primary admin-action-create" href="/api/google-drive/connect"><Link2 size={16}/><span>Collega Google Drive</span></Link></div>:!folderId?<div className="employee-document-setup"><div><h3>Crea o collega la cartella personale</h3><p>Puoi crearla automaticamente nell’Archivio generale oppure incollare il link di una sottocartella già esistente.</p></div><button className="admin-action admin-action-primary admin-action-create" disabled={pending} onClick={()=>configure("create")}><FolderPlus size={16}/><span>Crea cartella</span></button><div className="employee-folder-link"><input value={link} onChange={event=>setLink(event.target.value)} placeholder="Link o ID della cartella Google Drive"/><button className="admin-action admin-action-secondary admin-action-create" disabled={pending||!link.trim()} onClick={()=>configure("link")}><Link2 size={15}/><span>Collega esistente</span></button></div></div>:<DriveArchive googleEmail={googleEmail} initialFolderId={folderId}/>} 
+  </section>;
+}
