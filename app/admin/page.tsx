@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, ArrowRight, Banknote, CalendarDays, Coffee, ShieldCheck, Users, WalletCards } from "lucide-react";
+import { Archive, ArrowRight, Banknote, CalendarDays, Coffee, FolderOpen, ShieldCheck, Users, WalletCards } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -15,6 +15,7 @@ export default async function AdminPage() {
       {isAdmin && <div className="admin-quick-actions" aria-label="Accessi rapidi">
         <Link href="/admin/dipendenti?focus=1" className="admin-quick-action"><span className="admin-quick-icon"><CalendarDays size={24} /></span><span><small>Accesso rapido</small><strong>Pianificazione turni</strong><em>Apri il calendario ampliato</em></span><ArrowRight className="admin-quick-arrow" size={20} /></Link>
         <Link href="/admin/spese?closing=1" className="admin-quick-action admin-quick-action-closing"><span className="admin-quick-icon"><Banknote size={24} /></span><span><small>Accesso rapido</small><strong>Chiusura giornata</strong><em>Registra l’incasso di oggi</em></span><ArrowRight className="admin-quick-arrow" size={20} /></Link>
+        <Link href="/admin/archivio" className="admin-quick-action admin-quick-action-archive"><span className="admin-quick-icon"><FolderOpen size={24} /></span><span><small>Accesso rapido</small><strong>Archivio generale</strong><em>Apri cartelle e documenti</em></span><ArrowRight className="admin-quick-arrow" size={20} /></Link>
       </div>}
       <div className="admin-section-heading"><div><p className="admin-kicker">Strumenti</p><h2>Cosa vuoi gestire?</h2></div><span className="admin-secure-label"><ShieldCheck size={15} /> Sessione protetta</span></div>
       <div className="admin-dashboard-grid">
