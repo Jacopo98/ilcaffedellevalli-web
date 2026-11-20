@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Banknote, CalendarDays, Coffee, ShieldCheck, Users, WalletCards } from "lucide-react";
+import { Archive, ArrowRight, Banknote, CalendarDays, Coffee, ShieldCheck, Users, WalletCards } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -21,6 +21,7 @@ export default async function AdminPage() {
         {isAdmin ? <Link className="admin-dashboard-card admin-dashboard-card-active" href="/admin/spese"><span className="admin-card-icon"><WalletCards /></span><div><h3>Gestione economica</h3><p>Budget, scadenze, fornitori e andamento mensile.</p><span className="admin-card-link">Apri gestione <ArrowRight size={16} /></span></div></Link> : <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><WalletCards /></span><div><h3>Gestione economica</h3><p>Permesso riservato all’amministratore.</p></div></div>}
         {isAdmin ? <Link className="admin-dashboard-card admin-dashboard-card-active" href="/admin/dipendenti"><span className="admin-card-icon"><Users /></span><div><h3>Dipendenti e turni</h3><p>Anagrafica, calendario settimanale e riepilogo ore.</p><span className="admin-card-link">Apri gestione <ArrowRight size={16} /></span></div></Link> : <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><Users /></span><div><h3>Dipendenti e turni</h3><p>Permesso riservato all’amministratore.</p></div></div>}
         {isAdmin ? <Link className="admin-dashboard-card admin-dashboard-card-active" href="/admin/menu"><span className="admin-card-icon"><Coffee /></span><div><h3>Gestione menu</h3><p>Categorie, prodotti, prezzi, allergeni e disponibilità.</p><span className="admin-card-link">Apri gestione <ArrowRight size={16} /></span></div></Link> : <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><Coffee /></span><div><h3>Gestione menu</h3><p>Permesso riservato all’amministratore.</p></div></div>}
+        {isAdmin ? <Link className="admin-dashboard-card admin-dashboard-card-active" href="/admin/archivio"><span className="admin-card-icon"><Archive /></span><div><h3>Archivio generale</h3><p>Cartelle e documenti condivisi tramite Google Drive.</p><span className="admin-card-link">Apri archivio <ArrowRight size={16} /></span></div></Link> : <div className="admin-dashboard-card admin-dashboard-card-disabled"><span className="admin-card-icon"><Archive /></span><div><h3>Archivio generale</h3><p>Permesso riservato all’amministratore.</p></div></div>}
       </div>
     </main>
   );

@@ -8,6 +8,12 @@ create table public.employees (
   last_name text not null default '' check (char_length(last_name) <= 60),
   phone text check (phone is null or char_length(phone) <= 30),
   email text check (email is null or char_length(email) <= 254),
+  tax_code text check (tax_code is null or tax_code ~ '^[A-Z0-9]{16}$'),
+  iban text check (iban is null or iban ~ '^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$'),
+  birth_date date,
+  residence_address text check (residence_address is null or char_length(residence_address) <= 300),
+  emergency_contact_name text check (emergency_contact_name is null or char_length(emergency_contact_name) <= 120),
+  emergency_contact_phone text check (emergency_contact_phone is null or char_length(emergency_contact_phone) <= 30),
   role_title text not null default 'Collaboratore' check (char_length(role_title) <= 80),
   hire_date date,
   contract_level text check (contract_level is null or char_length(contract_level) <= 80),
@@ -54,6 +60,7 @@ create table public.work_shifts (
 
 create index work_shifts_week_idx on public.work_shifts (shift_date, employee_id);
 create index employees_active_idx on public.employees (is_active, first_name);
+create unique index employees_tax_code_unique on public.employees (tax_code) where tax_code is not null;
 
 create or replace function public.set_updated_at()
 returns trigger

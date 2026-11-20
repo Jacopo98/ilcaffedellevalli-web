@@ -9,11 +9,19 @@ export type EmployeeActionResult = { ok: boolean; error?: string; message?: stri
 const idSchema = z.coerce.number().int().positive();
 const dateSchema = z.iso.date();
 const optionalText = (max: number) => z.string().trim().max(max).transform((value) => value || null);
+const optionalTaxCode = z.string().trim().transform((value) => value.replace(/\s/g, "").toUpperCase()).refine((value) => !value || /^[A-Z0-9]{16}$/.test(value), "Inserisci un codice fiscale valido di 16 caratteri.").transform((value) => value || null);
+const optionalIban = z.string().trim().transform((value) => value.replace(/\s/g, "").toUpperCase()).refine((value) => !value || /^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(value), "Inserisci un IBAN valido.").transform((value) => value || null);
 const employeeSchema = z.object({
   firstName: z.string().trim().min(1).max(60),
   lastName: z.string().trim().max(60),
   phone: optionalText(30),
   email: z.union([z.literal(""), z.email().max(254)]).transform((value) => value || null),
+  taxCode: optionalTaxCode,
+  iban: optionalIban,
+  birthDate: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
+  residenceAddress: optionalText(300),
+  emergencyContactName: optionalText(120),
+  emergencyContactPhone: optionalText(30),
   roleTitle: z.string().trim().min(1).max(80),
   hireDate: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
   contractLevel: optionalText(80),
@@ -52,7 +60,9 @@ function addDays(value: string, amount: number) {
 function employeeValues(formData: FormData) {
   return employeeSchema.safeParse({
     firstName: formData.get("first_name"), lastName: formData.get("last_name") ?? "", phone: formData.get("phone") ?? "",
-    email: formData.get("email") ?? "", roleTitle: formData.get("role_title") ?? "Collaboratore", hireDate: formData.get("hire_date") ?? "",
+    email: formData.get("email") ?? "", taxCode: formData.get("tax_code") ?? "", iban: formData.get("iban") ?? "", birthDate: formData.get("birth_date") ?? "",
+    residenceAddress: formData.get("residence_address") ?? "", emergencyContactName: formData.get("emergency_contact_name") ?? "", emergencyContactPhone: formData.get("emergency_contact_phone") ?? "",
+    roleTitle: formData.get("role_title") ?? "Collaboratore", hireDate: formData.get("hire_date") ?? "",
     contractLevel: formData.get("contract_level") ?? "", ral: formData.get("ral") ?? "", contractStart: formData.get("contract_start") ?? "", contractEnd: formData.get("contract_end") ?? "",
     weeklyHours: formData.get("weekly_contract_hours") ?? "", notes: formData.get("notes") ?? "", color: formData.get("color") ?? "#E8650A",
   });
@@ -63,8 +73,8 @@ export async function createEmployee(formData: FormData): Promise<EmployeeAction
   if (!parsed.success) return { ok: false, error: "Controlla i dati inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const { error } = await supabase.from("employees").insert({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: true });
-  if (error) return { ok: false, error: error.code === "23505" ? "Questo dipendente è già presente." : "Impossibile creare il dipendente." };
+  const { error } = await supabase.from("employees").insert({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: true });
+  if (error) return { ok: false, error: error.code === "23505" ? (error.message.includes("employees_tax_code_unique") ? "Questo codice fiscale è già associato a un dipendente." : "Questo dipendente è già presente.") : "Impossibile creare il dipendente." };
   refreshSchedule();
   return { ok: true };
 }
@@ -75,8 +85,8 @@ export async function updateEmployee(formData: FormData): Promise<EmployeeAction
   if (!id.success || !parsed.success) return { ok: false, error: "Controlla i dati inseriti." };
   const { supabase } = await requireAdmin();
   const value = parsed.data;
-  const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
-  if (error) return { ok: false, error: error.code === "23505" ? "Esiste già un dipendente con questo nome." : "Impossibile salvare il dipendente." };
+  const { error } = await supabase.from("employees").update({ first_name: value.firstName, last_name: value.lastName, phone: value.phone, email: value.email, tax_code: value.taxCode, iban: value.iban, birth_date: value.birthDate, residence_address: value.residenceAddress, emergency_contact_name: value.emergencyContactName, emergency_contact_phone: value.emergencyContactPhone, role_title: value.roleTitle, hire_date: value.hireDate, contract_level: value.contractLevel, ral_cents: value.ral === null ? null : Math.round(value.ral * 100), contract_start: value.contractStart, contract_end: value.contractEnd, weekly_contract_hours: value.weeklyHours, notes: value.notes, color: value.color, is_active: formData.get("is_active") === "on" }).eq("id", id.data);
+  if (error) return { ok: false, error: error.code === "23505" ? (error.message.includes("employees_tax_code_unique") ? "Questo codice fiscale è già associato a un dipendente." : "Esiste già un dipendente con questo nome.") : "Impossibile salvare il dipendente." };
   const accountId = String(formData.get("user_account_id") ?? "");
   const { error: unlinkError } = await supabase.from("profiles").update({ employee_id: null }).eq("employee_id", id.data);
   if (unlinkError) return { ok: false, error: "Dipendente salvato, ma associazione account non aggiornata. Esegui employee-portal-migration.sql." };
