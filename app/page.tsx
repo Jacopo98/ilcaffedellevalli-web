@@ -69,7 +69,7 @@ export default async function Home() {
           </div>
           <div className="mt-20 flex flex-col gap-5 border-t border-white/15 pt-7 text-sm text-white/45 sm:flex-row sm:items-center sm:justify-between">
             <p>© {new Date().getFullYear()} Il Caffè delle Valli</p>
-            <div className="flex gap-6"><a className="hover:text-white" href="mailto:info@ilcaffedellevalli.it">info@ilcaffedellevalli.it</a><a className="hover:text-white" href="#">Instagram</a></div>
+            <div className="flex flex-wrap gap-6"><a className="hover:text-white" href="/privacy">Privacy</a><a className="hover:text-white" href="mailto:info@ilcaffedellevalli.it">info@ilcaffedellevalli.it</a><a className="hover:text-white" href="#">Instagram</a></div>
           </div>
         </div>
       </footer>
